@@ -135,6 +135,28 @@ export const useDeckStore = defineStore('deck', () => {
         }
     }
 
+    // Remove lexeme from deck
+    const removeLexeme = async (deckId: string, term: string) => {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await api.delete(`/decks/${deckId}/lexemes/${encodeURIComponent(term)}`)
+            if (currentDeck.value?._id === deckId) {
+                currentDeck.value = response.data
+            }
+            const index = decks.value.findIndex((d: Deck) => d._id === deckId)
+            if (index !== -1) {
+                decks.value[index] = response.data
+            }
+            return response.data
+        } catch (e: any) {
+            error.value = e.message
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         decks,
         currentDeck,
@@ -146,6 +168,7 @@ export const useDeckStore = defineStore('deck', () => {
         updateDeck,
         deleteDeck,
         createDeckFromText,
-        editDeckWithAI
+        editDeckWithAI,
+        removeLexeme
     }
 })
