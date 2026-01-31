@@ -178,6 +178,31 @@ export const useDeckStore = defineStore('deck', () => {
         }
     }
 
+    // Get lexemes due for review (SRS)
+    const fetchDueLexemes = async (deckId: string, limit: number = 10): Promise<Lexeme[]> => {
+        try {
+            const response = await api.get<Lexeme[]>(`/decks/${deckId}/lexemes/due?limit=${limit}`)
+            return response.data
+        } catch (e: any) {
+            error.value = e.message
+            throw e
+        }
+    }
+
+    // Rate a lexeme (update SRS data)
+    const rateLexeme = async (deckId: string, term: string, rating: number): Promise<Lexeme> => {
+        try {
+            const response = await api.post<Lexeme>(
+                `/decks/${deckId}/lexemes/${encodeURIComponent(term)}/rate`,
+                { rating }
+            )
+            return response.data
+        } catch (e: any) {
+            error.value = e.message
+            throw e
+        }
+    }
+
     return {
         decks,
         currentDeck,
@@ -191,6 +216,8 @@ export const useDeckStore = defineStore('deck', () => {
         createDeckFromText,
         editDeckWithAI,
         removeLexeme,
-        extractTextFromImage
+        extractTextFromImage,
+        fetchDueLexemes,
+        rateLexeme
     }
 })

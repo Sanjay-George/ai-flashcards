@@ -4,7 +4,12 @@ export interface ILexeme {
     term: string;
     meaning: string;
     POS: string;
-    mastery?: number;
+    // Spaced Repetition fields (per lexeme)
+    easeFactor: number;      // Easiness factor (starts at 2.5)
+    interval: number;        // Days until next review
+    repetitions: number;     // Number of consecutive correct answers
+    nextReviewDate: Date;    // When the lexeme is due for review
+    lastReviewed?: Date;
 }
 
 export interface IDeck extends Document {
@@ -19,7 +24,12 @@ const LexemeSchema = new Schema<ILexeme>({
     term: { type: String, required: true },
     meaning: { type: String, required: true },
     POS: { type: String, required: true },
-    mastery: { type: Number, default: 0 }
+    // SRS fields with defaults
+    easeFactor: { type: Number, default: 2.5 },
+    interval: { type: Number, default: 0 },
+    repetitions: { type: Number, default: 0 },
+    nextReviewDate: { type: Date, default: Date.now },
+    lastReviewed: { type: Date }
 });
 
 const DeckSchema = new Schema<IDeck>({

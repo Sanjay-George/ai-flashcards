@@ -4,7 +4,12 @@ export interface ILexeme {
     term: string;
     meaning: string;
     POS: string;
-    mastery?: number;
+    // Spaced Repetition fields
+    easeFactor?: number;
+    interval?: number;
+    repetitions?: number;
+    nextReviewDate?: Date;
+    lastReviewed?: Date;
 }
 
 export interface IDeck {
@@ -33,6 +38,11 @@ export interface IFlashcard {
     ratings: number[];
     lastReviewed?: Date;
     createdAt?: Date;
+    // Spaced Repetition fields
+    easeFactor?: number;
+    interval?: number;
+    repetitions?: number;
+    nextReviewDate?: Date;
 }
 
 // AI Service Request/Response Types

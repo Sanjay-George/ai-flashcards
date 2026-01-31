@@ -16,6 +16,11 @@ export interface IFlashcard extends Document {
     ratings: number[];
     lastReviewed?: Date;
     createdAt: Date;
+    // Spaced Repetition fields (SM-2 algorithm)
+    easeFactor: number;      // Easiness factor (starts at 2.5)
+    interval: number;        // Days until next review
+    repetitions: number;     // Number of consecutive correct answers
+    nextReviewDate: Date;    // When the card is due for review
 }
 
 const PatternSchema = new Schema<IPattern>({
@@ -33,7 +38,12 @@ const FlashcardSchema = new Schema<IFlashcard>({
     mode: { type: String, enum: ['simple', 'master'], required: true },
     ratings: [{ type: Number }],
     lastReviewed: { type: Date },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    // SRS fields with defaults
+    easeFactor: { type: Number, default: 2.5 },
+    interval: { type: Number, default: 0 },
+    repetitions: { type: Number, default: 0 },
+    nextReviewDate: { type: Date, default: Date.now }
 });
 
 export const Flashcard = mongoose.model<IFlashcard>('Flashcard', FlashcardSchema);

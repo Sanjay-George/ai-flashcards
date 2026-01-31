@@ -13,52 +13,36 @@ const deckStore = useDeckStore()
 
 const deckId = route.params.id as string
 const currentIndex = ref<number>(0)
+const highestReviewedIndex = ref<number>(-1) // Track furthest reviewed card
 const showAnswer = ref<boolean>(false)
 const sessionComplete = ref<boolean>(false)
-const sessionSize = 10
 const chatInput = ref<string>('')
 const chatAnswer = ref<string>('')
 const chatLoading = ref<boolean>(false)
 const chatError = ref<string>('')
 
-const pickRandom = <T,>(items: T[], count: number): T[] => {
-    const array = [...items]
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-            ;[array[i], array[j]] = [array[j], array[i]]
-    }
-    return array.slice(0, Math.min(count, array.length))
-}
-
 onMounted(async () => {
     await deckStore.fetchDeck(deckId)
 
+    // If no session flashcards, redirect back to deck
     if (flashcardStore.sessionFlashcards.length === 0) {
-        await flashcardStore.fetchFlashcards(deckId)
-
-        if (flashcardStore.flashcards.length === 0) {
-            // No flashcards generated yet, redirect to deck detail
-            router.push(`/deck/${deckId}`)
-            return
-        }
-
-        flashcardStore.setSessionFlashcards(
-            pickRandom(flashcardStore.flashcards, sessionSize)
-        )
+        router.push(`/deck/${deckId}`)
+        return
     }
 })
 
 const deck = computed<Deck | null>(() => deckStore.currentDeck)
-const flashcards = computed<Flashcard[]>(() =>
-    flashcardStore.sessionFlashcards.length > 0
-        ? flashcardStore.sessionFlashcards
-        : flashcardStore.flashcards
-)
-const currentCard = computed<Flashcard | undefined>(() => flashcards.value[currentIndex.value])
+const flashcards = computed<Flashcard[]>(() => flashcardStore.sessionFlashcards)
+const currentCard = computed<any>(() => flashcards.value[currentIndex.value])
 const progress = computed<number>(() => {
     if (flashcards.value.length === 0) return 0
     return Math.round(((currentIndex.value + 1) / flashcards.value.length) * 100)
 })
+
+// Navigation helpers
+const canGoBack = computed(() => currentIndex.value > 0)
+const canGoForward = computed(() => currentIndex.value < highestReviewedIndex.value)
+const isReviewingPrevious = computed(() => currentIndex.value < highestReviewedIndex.value)
 
 const flipDurationMs = 600
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -71,31 +55,55 @@ const rateCard = async (rating: number): Promise<void> => {
     if (!currentCard.value) return
 
     showAnswer.value = false
-    const ratePromise = flashcardStore.rateFlashcard(currentCard.value._id, rating)
+    chatInput.value = ''
+    chatAnswer.value = ''
+
+    // Only rate if this is a new card (not reviewing a previous one)
+    const isNewCard = currentIndex.value >= highestReviewedIndex.value
+
+    if (isNewCard) {
+        // Rate the lexeme (not the flashcard) - this updates SRS data
+        deckStore.rateLexeme(deckId, currentCard.value.lexemeId, rating)
+    }
 
     if (currentIndex.value < flashcards.value.length - 1) {
         await wait(flipDurationMs)
         currentIndex.value++
+        // Update highest reviewed to current position after moving forward
+        if (currentIndex.value > highestReviewedIndex.value) {
+            highestReviewedIndex.value = currentIndex.value
+        }
     } else {
         sessionComplete.value = true
     }
-
-    await ratePromise
 }
 
-const restartSession = (): void => {
-    currentIndex.value = 0
-    showAnswer.value = false
-    sessionComplete.value = false
-
-    if (flashcardStore.flashcards.length > 0) {
-        flashcardStore.setSessionFlashcards(
-            pickRandom(flashcardStore.flashcards, sessionSize)
-        )
+// Navigation functions
+const goToPrevious = (): void => {
+    if (canGoBack.value) {
+        showAnswer.value = false
+        chatInput.value = ''
+        chatAnswer.value = ''
+        currentIndex.value--
     }
 }
 
+const goToNext = (): void => {
+    if (canGoForward.value) {
+        showAnswer.value = false
+        chatInput.value = ''
+        chatAnswer.value = ''
+        currentIndex.value++
+    }
+}
+
+const restartSession = (): void => {
+    // Go back to deck to regenerate with SRS
+    router.push(`/deck/${deckId}`)
+}
+
 const goToDeck = (): void => {
+    flashcardStore.clearSessionFlashcards()
     router.push(`/deck/${deckId}`)
 }
 
@@ -107,16 +115,17 @@ const askFlashcardQuestion = async (): Promise<void> => {
     chatAnswer.value = ''
 
     try {
+        const card = currentCard.value
         const response = await aiApi.post('/chat', {
             user_message: chatInput.value.trim(),
-            question: currentCard.value.question,
-            answer: currentCard.value.answer,
-            lexeme: {
-                term: currentCard.value.lexemeId,
-                meaning: currentCard.value.answer,
-                POS: currentCard.value.pattern?.pos || 'unknown'
+            question: card.question,
+            answer: card.answer,
+            lexeme: card.lexeme || {
+                term: card.lexemeId,
+                meaning: card.answer,
+                POS: card.pattern?.pos || 'unknown'
             },
-            pattern: currentCard.value.pattern
+            pattern: card.pattern
         })
 
         chatAnswer.value = response.data.response
@@ -161,9 +170,31 @@ const askFlashcardQuestion = async (): Promise<void> => {
                 <div class="h-full bg-gradient-to-r from-primary to-purple-600 transition-all duration-300"
                     :style="{ width: progress + '%' }"></div>
             </div>
-            <p class="text-center text-muted-foreground text-sm mb-8">
-                Card {{ currentIndex + 1 }} of {{ flashcards.length }}
-            </p>
+
+            <!-- Card counter and navigation -->
+            <div class="flex justify-center items-center gap-4 mb-8">
+                <button @click="goToPrevious" :disabled="!canGoBack"
+                    class="p-2 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary"
+                    title="Previous card">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <p class="text-muted-foreground text-sm">
+                    Card {{ currentIndex + 1 }} of {{ flashcards.length }}
+                    <span v-if="isReviewingPrevious"
+                        class="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                        Reviewing
+                    </span>
+                </p>
+                <button @click="goToNext" :disabled="!canGoForward"
+                    class="p-2 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary"
+                    title="Next reviewed card">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
 
             <!-- Flashcard -->
             <div class="perspective-[1000px] mb-8 cursor-pointer" @click="flipCard">
@@ -184,37 +215,50 @@ const askFlashcardQuestion = async (): Promise<void> => {
                         class="absolute w-full min-h-[400px] backface-hidden rotate-y-180 flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary to-purple-600 text-white rounded-xl shadow-lg">
                         <div class="text-sm font-semibold uppercase tracking-wide opacity-80 mb-6">Answer</div>
                         <div class="text-3xl font-semibold text-center leading-relaxed">{{ currentCard.answer }}</div>
-                        <div v-if="currentCard.pattern" class="mt-6 text-sm opacity-90">
-                            Pattern: {{ currentCard.pattern.name }} ({{ currentCard.pattern.pos }})
-                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Rating Section -->
             <div v-if="showAnswer" class="text-center">
-                <p class="text-lg font-semibold text-foreground mb-4">How well did you know this?</p>
-                <div class="flex justify-center gap-3 flex-wrap">
-                    <button @click="rateCard(1)"
-                        class="btn px-5 py-3 bg-red-400 text-white hover:bg-red-500 hover:-translate-y-0.5 transition-all">
-                        😞 Again
-                    </button>
-                    <button @click="rateCard(2)"
-                        class="btn px-5 py-3 bg-orange-400 text-white hover:bg-orange-500 hover:-translate-y-0.5 transition-all">
-                        😐 Hard
-                    </button>
-                    <button @click="rateCard(3)"
-                        class="btn px-5 py-3 bg-green-400 text-white hover:bg-green-500 hover:-translate-y-0.5 transition-all">
-                        🙂 Good
-                    </button>
-                    <button @click="rateCard(4)"
-                        class="btn px-5 py-3 bg-teal-400 text-white hover:bg-teal-500 hover:-translate-y-0.5 transition-all">
-                        😊 Easy
-                    </button>
-                    <button @click="rateCard(5)"
-                        class="btn px-5 py-3 bg-primary text-white hover:bg-primary/90 hover:-translate-y-0.5 transition-all">
-                        🎯 Perfect
-                    </button>
+                <!-- When reviewing a previous card -->
+                <div v-if="isReviewingPrevious" class="mb-4">
+                    <p class="text-muted-foreground mb-4">You've already rated this card</p>
+                    <div class="flex justify-center gap-3">
+                        <button v-if="canGoBack" @click="goToPrevious" class="btn btn-secondary">
+                            ← Previous
+                        </button>
+                        <button @click="goToNext" class="btn btn-primary">
+                            Next →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- When rating a new card -->
+                <div v-else>
+                    <p class="text-lg font-semibold text-foreground mb-4">How well did you know this?</p>
+                    <div class="flex justify-center gap-3 flex-wrap">
+                        <button @click="rateCard(1)"
+                            class="btn px-5 py-3 bg-red-400 text-white hover:bg-red-500 hover:-translate-y-0.5 transition-all">
+                            😞 Again
+                        </button>
+                        <button @click="rateCard(2)"
+                            class="btn px-5 py-3 bg-orange-400 text-white hover:bg-orange-500 hover:-translate-y-0.5 transition-all">
+                            😐 Hard
+                        </button>
+                        <button @click="rateCard(3)"
+                            class="btn px-5 py-3 bg-green-400 text-white hover:bg-green-500 hover:-translate-y-0.5 transition-all">
+                            🙂 Good
+                        </button>
+                        <button @click="rateCard(4)"
+                            class="btn px-5 py-3 bg-teal-400 text-white hover:bg-teal-500 hover:-translate-y-0.5 transition-all">
+                            😊 Easy
+                        </button>
+                        <button @click="rateCard(5)"
+                            class="btn px-5 py-3 bg-primary text-white hover:bg-primary/90 hover:-translate-y-0.5 transition-all">
+                            🎯 Perfect
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Chat Section -->

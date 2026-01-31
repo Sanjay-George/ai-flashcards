@@ -31,6 +31,21 @@ export const useFlashcardStore = defineStore('flashcard', () => {
         }
     }
 
+    // Fetch flashcards due for review (spaced repetition)
+    const fetchDueFlashcards = async (deckId: string, limit: number = 10): Promise<Flashcard[]> => {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await api.get<Flashcard[]>(`/flashcards/deck/${deckId}/due?limit=${limit}`)
+            return response.data
+        } catch (e: any) {
+            error.value = e.message
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
     // Generate flashcards from deck
     const generateFlashcards = async (deckJson: any, mode: 'simple' | 'master'): Promise<GenerateFlashcardsResponse> => {
         loading.value = true
@@ -93,6 +108,7 @@ export const useFlashcardStore = defineStore('flashcard', () => {
         loading,
         error,
         fetchFlashcards,
+        fetchDueFlashcards,
         generateFlashcards,
         saveFlashcards,
         rateFlashcard,

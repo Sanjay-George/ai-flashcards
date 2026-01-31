@@ -25,15 +25,6 @@ const pendingAdditions = ref<Lexeme[]>([])
 const pendingRemovals = ref<Lexeme[]>([])
 const originalLexemes = ref<Lexeme[]>([])
 
-const pickRandomLexemes = (lexemes: Lexeme[], count: number): Lexeme[] => {
-    const array = [...lexemes]
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-            ;[array[i], array[j]] = [array[j], array[i]]
-    }
-    return array.slice(0, Math.min(count, array.length))
-}
-
 onMounted(async () => {
     await deckStore.fetchDeck(deckId)
 })
@@ -120,36 +111,45 @@ const clearPendingChanges = (): void => {
     originalLexemes.value = []
 }
 
-const generateAndStudy = async (): Promise<void> => {
+// Study with SRS - generates flashcards on-the-fly from due lexemes
+const studyWithSRS = async (): Promise<void> => {
     if (!deck.value) return
 
     generatingFlashcards.value = true
 
     try {
-        const selectedLexemes = pickRandomLexemes(deck.value.lexemes, sessionSize)
+        // Fetch lexemes due for review using spaced repetition
+        const dueLexemes = await deckStore.fetchDueLexemes(deckId, sessionSize)
+
+        if (dueLexemes.length === 0) {
+            editError.value = 'No lexemes available for review!'
+            return
+        }
+
+        // Generate flashcards dynamically with selected mode
         const result = await flashcardStore.generateFlashcards(
             {
                 title: deck.value.title,
-                lexemes: selectedLexemes
+                lexemes: dueLexemes
             },
             selectedMode.value
         )
 
-        // Save flashcards to database
-        const flashcardsToSave = result.flashcards.map((fc: any, index: number) => ({
+        // Create session flashcards (not saved to DB, just for the session)
+        const sessionCards = result.flashcards.map((fc: any, index: number) => ({
+            _id: `session-${index}-${Date.now()}`, // Temporary ID
             deckId: deckId,
-            lexemeId: selectedLexemes[index % selectedLexemes.length].term,
+            lexemeId: dueLexemes[index % dueLexemes.length].term,
             question: fc.question,
             answer: fc.answer,
             pattern: fc.pattern,
             mode: selectedMode.value,
-            ratings: []
+            ratings: [],
+            // Include lexeme data for rating
+            lexeme: dueLexemes[index % dueLexemes.length]
         }))
 
-        const saved = await flashcardStore.saveFlashcards(flashcardsToSave)
-        flashcardStore.setSessionFlashcards(saved)
-
-        // Navigate to study session
+        flashcardStore.setSessionFlashcards(sessionCards)
         router.push(`/study/${deckId}`)
     } catch (e: any) {
         editError.value = e.message || 'Failed to generate flashcards'
@@ -293,14 +293,15 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
                 {{ editError }}
             </div>
 
-            <!-- Generate Flashcards -->
+            <!-- Study Flashcards -->
             <div class="card text-center">
-                <h2 class="text-2xl font-semibold mb-4 text-foreground">Generate Flashcards</h2>
-                <p class="text-muted-foreground text-sm mb-4">
-                    Choose a mode and generate flashcards to start studying
+                <h2 class="text-2xl font-semibold mb-4 text-foreground">Study Flashcards</h2>
+                <p class="text-muted-foreground text-sm mb-6">
+                    Choose your mode and start studying with spaced repetition
                 </p>
 
-                <div class="grid grid-cols-2 gap-4 mb-8">
+                <!-- Mode Selection -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
                     <label class="cursor-pointer">
                         <input type="radio" v-model="selectedMode" value="simple" class="hidden peer" />
                         <div
@@ -320,10 +321,17 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
                     </label>
                 </div>
 
-                <button @click="generateAndStudy" class="btn btn-primary px-8 py-4 text-lg"
-                    :disabled="generatingFlashcards">
-                    {{ generatingFlashcards ? 'Generating...' : 'Generate & Study' }}
-                </button>
+                <!-- Study Button -->
+                <div class="p-6 bg-secondary rounded-lg">
+                    <p class="text-muted-foreground text-sm mb-4">
+                        📚 Cards are selected using spaced repetition. Difficult words appear more often, mastered words
+                        less frequently.
+                    </p>
+                    <button @click="studyWithSRS" class="btn btn-primary px-8 py-4 text-lg"
+                        :disabled="generatingFlashcards">
+                        {{ generatingFlashcards ? 'Generating...' : 'Start Studying' }}
+                    </button>
+                </div>
             </div>
         </div>
     </div>

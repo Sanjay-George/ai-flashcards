@@ -4,7 +4,12 @@ export interface Lexeme {
     term: string;
     meaning: string;
     POS: string;
-    mastery?: number;
+    // Spaced Repetition fields
+    easeFactor?: number;
+    interval?: number;
+    repetitions?: number;
+    nextReviewDate?: string;
+    lastReviewed?: string;
 }
 
 export interface Deck {
@@ -32,7 +37,9 @@ export interface Flashcard {
     mode: 'simple' | 'master';
     ratings: number[];
     lastReviewed?: string;
-    createdAt: string;
+    createdAt?: string;
+    // Session-only field (not stored in DB)
+    lexeme?: Lexeme;
 }
 
 // AI Service Request/Response Types
