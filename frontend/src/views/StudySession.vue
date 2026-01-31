@@ -129,18 +129,18 @@ const askFlashcardQuestion = async (): Promise<void> => {
 </script>
 
 <template>
-    <div class="study-session">
+    <div class="max-w-3xl mx-auto">
         <div v-if="flashcardStore.loading" class="loading">
             <div class="spinner"></div>
-            <p>Loading flashcards...</p>
+            <p class="mt-4">Loading flashcards...</p>
         </div>
 
-        <div v-else-if="sessionComplete" class="session-complete card">
-            <div class="complete-icon">🎉</div>
-            <h1>Session Complete!</h1>
-            <p>You've reviewed all {{ flashcards.length }} flashcards</p>
+        <div v-else-if="sessionComplete" class="card text-center py-16 px-8 max-w-xl mx-auto mt-8">
+            <div class="text-7xl mb-4">🎉</div>
+            <h1 class="text-3xl font-bold text-foreground mb-2">Session Complete!</h1>
+            <p class="text-muted-foreground mb-8">You've reviewed all {{ flashcards.length }} flashcards</p>
 
-            <div class="complete-actions">
+            <div class="flex justify-center gap-4">
                 <button @click="restartSession" class="btn btn-primary">
                     Study Again
                 </button>
@@ -150,69 +150,87 @@ const askFlashcardQuestion = async (): Promise<void> => {
             </div>
         </div>
 
-        <div v-else-if="currentCard" class="study-container">
-            <div class="study-header">
-                <h2>{{ deck?.title }}</h2>
+        <div v-else-if="currentCard">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-foreground">{{ deck?.title }}</h2>
                 <button @click="goToDeck" class="btn btn-secondary">Exit</button>
             </div>
 
-            <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+            <!-- Progress bar -->
+            <div class="w-full h-2 bg-border rounded-full overflow-hidden mb-2">
+                <div class="h-full bg-gradient-to-r from-primary to-purple-600 transition-all duration-300"
+                    :style="{ width: progress + '%' }"></div>
             </div>
-            <div class="progress-text">
+            <p class="text-center text-muted-foreground text-sm mb-8">
                 Card {{ currentIndex + 1 }} of {{ flashcards.length }}
-            </div>
+            </p>
 
-            <div class="flashcard-container" @click="flipCard">
-                <div class="flashcard" :class="{ flipped: showAnswer }">
-                    <div class="flashcard-front">
-                        <div class="card-label">Question</div>
-                        <div class="card-content">{{ currentCard.question }}</div>
-                        <div class="card-hint">Click to reveal answer</div>
+            <!-- Flashcard -->
+            <div class="perspective-[1000px] mb-8 cursor-pointer" @click="flipCard">
+                <div class="relative w-full min-h-[400px] transition-transform duration-600 transform-style-preserve-3d"
+                    :class="{ 'rotate-y-180': showAnswer }">
+                    <!-- Front -->
+                    <div
+                        class="absolute w-full min-h-[400px] backface-hidden flex flex-col items-center justify-center p-12 bg-card rounded-xl border border-border shadow-lg">
+                        <div class="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-6">Question
+                        </div>
+                        <div class="text-3xl font-semibold text-center text-foreground leading-relaxed">{{
+                            currentCard.question }}</div>
+                        <div class="mt-8 text-sm text-muted-foreground italic">Click to reveal answer</div>
                     </div>
 
-                    <div class="flashcard-back">
-                        <div class="card-label">Answer</div>
-                        <div class="card-content">{{ currentCard.answer }}</div>
-                        <div v-if="currentCard.pattern" class="card-pattern">
+                    <!-- Back -->
+                    <div
+                        class="absolute w-full min-h-[400px] backface-hidden rotate-y-180 flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary to-purple-600 text-white rounded-xl shadow-lg">
+                        <div class="text-sm font-semibold uppercase tracking-wide opacity-80 mb-6">Answer</div>
+                        <div class="text-3xl font-semibold text-center leading-relaxed">{{ currentCard.answer }}</div>
+                        <div v-if="currentCard.pattern" class="mt-6 text-sm opacity-90">
                             Pattern: {{ currentCard.pattern.name }} ({{ currentCard.pattern.pos }})
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div v-if="showAnswer" class="rating-section">
-                <p>How well did you know this?</p>
-                <div class="rating-buttons">
-                    <button @click="rateCard(1)" class="btn rating-btn rating-1">
+            <!-- Rating Section -->
+            <div v-if="showAnswer" class="text-center">
+                <p class="text-lg font-semibold text-foreground mb-4">How well did you know this?</p>
+                <div class="flex justify-center gap-3 flex-wrap">
+                    <button @click="rateCard(1)"
+                        class="btn px-5 py-3 bg-red-400 text-white hover:bg-red-500 hover:-translate-y-0.5 transition-all">
                         😞 Again
                     </button>
-                    <button @click="rateCard(2)" class="btn rating-btn rating-2">
+                    <button @click="rateCard(2)"
+                        class="btn px-5 py-3 bg-orange-400 text-white hover:bg-orange-500 hover:-translate-y-0.5 transition-all">
                         😐 Hard
                     </button>
-                    <button @click="rateCard(3)" class="btn rating-btn rating-3">
+                    <button @click="rateCard(3)"
+                        class="btn px-5 py-3 bg-green-400 text-white hover:bg-green-500 hover:-translate-y-0.5 transition-all">
                         🙂 Good
                     </button>
-                    <button @click="rateCard(4)" class="btn rating-btn rating-4">
+                    <button @click="rateCard(4)"
+                        class="btn px-5 py-3 bg-teal-400 text-white hover:bg-teal-500 hover:-translate-y-0.5 transition-all">
                         😊 Easy
                     </button>
-                    <button @click="rateCard(5)" class="btn rating-btn rating-5">
+                    <button @click="rateCard(5)"
+                        class="btn px-5 py-3 bg-primary text-white hover:bg-primary/90 hover:-translate-y-0.5 transition-all">
                         🎯 Perfect
                     </button>
                 </div>
 
-                <div class="chat-section">
-                    <p class="chat-title">Ask a question about this card</p>
-                    <div class="chat-input-row">
-                        <input v-model="chatInput" class="chat-input" type="text"
-                            placeholder="e.g., How do I use this in a sentence?" :disabled="chatLoading" />
+                <!-- Chat Section -->
+                <div class="mt-6 text-left bg-secondary p-4 rounded-lg">
+                    <p class="font-semibold text-foreground mb-3">Ask a question about this card</p>
+                    <div class="flex gap-2 items-center">
+                        <input v-model="chatInput"
+                            class="flex-1 px-3 py-2.5 border border-input rounded-md text-sm focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10"
+                            type="text" placeholder="e.g., How do I use this in a sentence?" :disabled="chatLoading" />
                         <button @click="askFlashcardQuestion" class="btn btn-secondary"
                             :disabled="chatLoading || !chatInput.trim()">
                             {{ chatLoading ? 'Asking...' : 'Ask' }}
                         </button>
                     </div>
-                    <p v-if="chatError" class="chat-error">{{ chatError }}</p>
-                    <div v-if="chatAnswer" class="chat-answer">
+                    <p v-if="chatError" class="text-destructive mt-2">{{ chatError }}</p>
+                    <div v-if="chatAnswer" class="mt-3 bg-card p-3 rounded-lg border border-border">
                         {{ chatAnswer }}
                     </div>
                 </div>
@@ -222,241 +240,24 @@ const askFlashcardQuestion = async (): Promise<void> => {
 </template>
 
 <style scoped>
-.study-session {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.study-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.study-header h2 {
-    font-size: 1.5rem;
-    color: #2d3748;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: #e2e8f0;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    transition: width 0.3s ease;
-}
-
-.progress-text {
-    text-align: center;
-    color: #718096;
-    font-size: 0.875rem;
-    margin-bottom: 2rem;
-}
-
-.flashcard-container {
+/* Custom 3D flip styles that Tailwind doesn't support directly */
+.perspective-\[1000px\] {
     perspective: 1000px;
-    margin-bottom: 2rem;
-    cursor: pointer;
 }
 
-.flashcard {
-    position: relative;
-    width: 100%;
-    min-height: 400px;
+.transform-style-preserve-3d {
     transform-style: preserve-3d;
-    transition: transform 0.6s;
 }
 
-.flashcard.flipped {
-    transform: rotateY(180deg);
-}
-
-.flashcard-front,
-.flashcard-back {
-    position: absolute;
-    width: 100%;
-    min-height: 400px;
+.backface-hidden {
     backface-visibility: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
-.flashcard-back {
+.rotate-y-180 {
     transform: rotateY(180deg);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
 }
 
-.card-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 1.5rem;
-    opacity: 0.8;
-}
-
-.card-content {
-    font-size: 2rem;
-    font-weight: 600;
-    text-align: center;
-    line-height: 1.4;
-}
-
-.card-hint {
-    margin-top: 2rem;
-    font-size: 0.875rem;
-    color: #718096;
-    font-style: italic;
-}
-
-.card-pattern {
-    margin-top: 1.5rem;
-    font-size: 0.875rem;
-    opacity: 0.9;
-}
-
-.rating-section {
-    text-align: center;
-}
-
-.rating-section p {
-    font-size: 1.125rem;
-    margin-bottom: 1rem;
-    color: #2d3748;
-    font-weight: 600;
-}
-
-.rating-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.chat-section {
-    margin-top: 1.5rem;
-    text-align: left;
-    background: #f7fafc;
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-.chat-title {
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: #2d3748;
-}
-
-.chat-input-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.chat-input {
-    flex: 1;
-    padding: 0.75rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 0.95rem;
-}
-
-.chat-input:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-.chat-error {
-    color: #c53030;
-    margin-top: 0.5rem;
-}
-
-.chat-answer {
-    margin-top: 0.75rem;
-    background: white;
-    padding: 0.75rem;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-}
-
-.rating-btn {
-    padding: 0.75rem 1.25rem;
-    font-size: 1rem;
-    border: 2px solid transparent;
-    transition: all 0.3s;
-}
-
-.rating-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.rating-1 {
-    background: #fc8181;
-    color: white;
-}
-
-.rating-2 {
-    background: #f6ad55;
-    color: white;
-}
-
-.rating-3 {
-    background: #68d391;
-    color: white;
-}
-
-.rating-4 {
-    background: #4fd1c5;
-    color: white;
-}
-
-.rating-5 {
-    background: #667eea;
-    color: white;
-}
-
-.session-complete {
-    text-align: center;
-    padding: 4rem 2rem;
-    max-width: 600px;
-    margin: 2rem auto;
-}
-
-.complete-icon {
-    font-size: 5rem;
-    margin-bottom: 1rem;
-}
-
-.session-complete h1 {
-    font-size: 2rem;
-    color: #2d3748;
-    margin-bottom: 0.5rem;
-}
-
-.session-complete p {
-    color: #718096;
-    margin-bottom: 2rem;
-}
-
-.complete-actions {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
+.duration-600 {
+    transition-duration: 600ms;
 }
 </style>
