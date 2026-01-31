@@ -132,8 +132,12 @@ Mode rules:
 - Master mode: mix multiple patterns. Include at least one of each where applicable and NEVER repeat the same pattern consecutively:
   1) base language → English (pattern name: "base_to_english")
   2) English → base language (pattern name: "english_to_base")
-  3) Fill in the blank in a sentence in the base language (pattern name: "fill_in_blank")
+  3) Fill in the blank (pattern name: "fill_in_blank")
+     IMPORTANT: Always include a hint showing the English meaning in parentheses!
+     Example: Q: "Ich habe es nicht ____. (to understand)" A: "verstanden"
   4) Conjugated/inflected forms for verbs/adjectives as appropriate (pattern name: "conjugation")
+     Include the infinitive and tense/form required.
+     Example: Q: "sprechen (past participle)" A: "gesprochen"
   5) Articles/gender where relevant (e.g., der/die/das) (pattern name: "article")
 
 Pattern object format:
