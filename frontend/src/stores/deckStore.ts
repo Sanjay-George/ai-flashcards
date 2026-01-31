@@ -135,6 +135,27 @@ export const useDeckStore = defineStore('deck', () => {
         }
     }
 
+    // AI: Extract text from image
+    const extractTextFromImage = async (file: File): Promise<string> => {
+        loading.value = true
+        error.value = null
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+            const response = await aiApi.post<{ text: string }>('/extract_text', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+            return response.data.text
+        } catch (e: any) {
+            error.value = e.message
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
     // Remove lexeme from deck
     const removeLexeme = async (deckId: string, term: string) => {
         loading.value = true
@@ -169,6 +190,7 @@ export const useDeckStore = defineStore('deck', () => {
         deleteDeck,
         createDeckFromText,
         editDeckWithAI,
-        removeLexeme
+        removeLexeme,
+        extractTextFromImage
     }
 })

@@ -8,9 +8,40 @@ const router = useRouter()
 const deckStore = useDeckStore()
 
 const userMessage = ref<string>('')
+const extractedText = ref<string>('')
+const uploadedImage = ref<File | null>(null)
+const isExtractingText = ref<boolean>(false)
 const generatedDeck = ref<CreateDeckResponse | null>(null)
 const isGenerating = ref<boolean>(false)
 const error = ref<string>('')
+
+const handleImageUpload = async (event: Event) => {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0]
+    if (!file) return
+
+    uploadedImage.value = file
+    error.value = ''
+    isExtractingText.value = true
+
+    try {
+        const text = await deckStore.extractTextFromImage(file)
+        extractedText.value = text
+        if (!userMessage.value.trim()) {
+            userMessage.value = 'Create flashcards from the extracted text'
+        }
+    } catch (e: any) {
+        error.value = e.message || 'Failed to extract text from image'
+        uploadedImage.value = null
+    } finally {
+        isExtractingText.value = false
+    }
+}
+
+const clearImage = () => {
+    uploadedImage.value = null
+    extractedText.value = ''
+}
 
 const generateDeck = async () => {
     if (!userMessage.value.trim()) {
@@ -22,7 +53,10 @@ const generateDeck = async () => {
     isGenerating.value = true
 
     try {
-        const result = await deckStore.createDeckFromText(userMessage.value)
+        const result = await deckStore.createDeckFromText(
+            userMessage.value,
+            extractedText.value || undefined
+        )
         generatedDeck.value = result
     } catch (e: any) {
         error.value = e.message || 'Failed to generate deck'
@@ -44,6 +78,8 @@ const saveDeck = async () => {
 
 const resetForm = () => {
     userMessage.value = ''
+    extractedText.value = ''
+    uploadedImage.value = null
     generatedDeck.value = null
     error.value = ''
 }
@@ -57,10 +93,37 @@ const resetForm = () => {
             <div class="form-section">
                 <h2>Step 1: Describe What You Want to Learn</h2>
                 <p class="help-text">
-                    Tell the AI what you want to learn. For example:
-                    "I want to learn the most common verbs in Spanish" or
+                    Tell the AI what you want to learn, or upload an image with text to extract.
+                    For example: "I want to learn the most common verbs in Spanish" or
                     "Create flashcards for French food vocabulary"
                 </p>
+
+                <!-- Image Upload Section -->
+                <div class="image-upload-section">
+                    <label class="upload-label">
+                        <input type="file" accept="image/*" capture="environment" @change="handleImageUpload"
+                            class="file-input" :disabled="isGenerating || isExtractingText" />
+                        <span class="upload-btn">
+                            📷 {{ uploadedImage ? 'Change Image' : 'Upload Image or Take Photo' }}
+                        </span>
+                    </label>
+
+                    <div v-if="isExtractingText" class="extracting-text">
+                        <div class="spinner-small"></div>
+                        <span>Extracting text from image...</span>
+                    </div>
+
+                    <div v-if="uploadedImage && !isExtractingText" class="image-preview">
+                        <div class="preview-header">
+                            <span>✓ Image uploaded: {{ uploadedImage.name }}</span>
+                            <button @click="clearImage" class="btn-clear" type="button">✕</button>
+                        </div>
+                        <div v-if="extractedText" class="extracted-text">
+                            <strong>Extracted text:</strong>
+                            <p>{{ extractedText }}</p>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="form-group">
                     <label for="message">Your Learning Goal</label>
@@ -147,6 +210,105 @@ const resetForm = () => {
     color: #718096;
     margin-bottom: 1.5rem;
     line-height: 1.6;
+}
+
+.image-upload-section {
+    margin-bottom: 1.5rem;
+}
+
+.upload-label {
+    display: inline-block;
+    cursor: pointer;
+}
+
+.file-input {
+    display: none;
+}
+
+.upload-btn {
+    display: inline-block;
+    background: #667eea;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background 0.3s;
+}
+
+.upload-btn:hover {
+    background: #5568d3;
+}
+
+.extracting-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    color: #667eea;
+    font-size: 0.875rem;
+}
+
+.spinner-small {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.image-preview {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 2px solid #667eea;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    color: #2d3748;
+    font-weight: 500;
+}
+
+.btn-clear {
+    background: transparent;
+    border: none;
+    color: #e53e3e;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-clear:hover {
+    background: #fed7d7;
+}
+
+.extracted-text {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.extracted-text strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #2d3748;
+}
+
+.extracted-text p {
+    color: #4a5568;
+    margin: 0;
+    line-height: 1.6;
+    max-height: 150px;
+    overflow-y: auto;
 }
 
 .error-message {
