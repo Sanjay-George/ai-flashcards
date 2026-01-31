@@ -18,6 +18,13 @@ const generatingFlashcards = ref<boolean>(false)
 const selectedMode = ref<'simple' | 'master'>('simple')
 const sessionSize = 10
 
+// Pending changes state
+const hasPendingChanges = ref<boolean>(false)
+const pendingAction = ref<'add' | 'remove' | 'edit' | null>(null)
+const pendingAdditions = ref<Lexeme[]>([])
+const pendingRemovals = ref<Lexeme[]>([])
+const originalLexemes = ref<Lexeme[]>([])
+
 const pickRandomLexemes = (lexemes: Lexeme[], count: number): Lexeme[] => {
     const array = [...lexemes]
     for (let i = array.length - 1; i > 0; i--) {
@@ -49,31 +56,68 @@ const handleEdit = async (): Promise<void> => {
             editInstruction.value
         )
 
-        // Apply changes based on action
-        let updatedLexemes = [...deck.value.lexemes]
+        // Store original state and set pending changes
+        originalLexemes.value = [...deck.value.lexemes]
+        pendingAction.value = result.action
 
         if (result.action === 'add') {
-            updatedLexemes = [...updatedLexemes, ...result.updated_lexemes]
+            pendingAdditions.value = result.updated_lexemes
+            pendingRemovals.value = []
         } else if (result.action === 'remove') {
             const termsToRemove = result.updated_lexemes.map((l: Lexeme) => l.term)
-            updatedLexemes = updatedLexemes.filter((l: Lexeme) => !termsToRemove.includes(l.term))
+            pendingRemovals.value = deck.value.lexemes.filter((l: Lexeme) => termsToRemove.includes(l.term))
+            pendingAdditions.value = []
         } else if (result.action === 'edit') {
-            // Update existing lexemes
-            result.updated_lexemes.forEach((newLex: Lexeme) => {
-                const index = updatedLexemes.findIndex((l: Lexeme) => l.term === newLex.term)
-                if (index !== -1) {
-                    updatedLexemes[index] = newLex
-                }
-            })
+            // For edits, show old as removal and new as addition
+            const editedTerms = result.updated_lexemes.map((l: Lexeme) => l.term)
+            pendingRemovals.value = deck.value.lexemes.filter((l: Lexeme) => editedTerms.includes(l.term))
+            pendingAdditions.value = result.updated_lexemes
         }
 
-        await deckStore.updateDeck(deckId, { lexemes: updatedLexemes })
+        hasPendingChanges.value = true
         editInstruction.value = ''
     } catch (e: any) {
         editError.value = e.message || 'Failed to edit deck'
     } finally {
         isEditing.value = false
     }
+}
+
+const commitChanges = async (): Promise<void> => {
+    if (!deck.value || !hasPendingChanges.value) return
+
+    try {
+        let updatedLexemes = [...deck.value.lexemes]
+
+        if (pendingAction.value === 'add') {
+            updatedLexemes = [...updatedLexemes, ...pendingAdditions.value]
+        } else if (pendingAction.value === 'remove') {
+            const termsToRemove = pendingRemovals.value.map((l: Lexeme) => l.term)
+            updatedLexemes = updatedLexemes.filter((l: Lexeme) => !termsToRemove.includes(l.term))
+        } else if (pendingAction.value === 'edit') {
+            // Remove old versions and add new ones
+            const termsToUpdate = pendingAdditions.value.map((l: Lexeme) => l.term)
+            updatedLexemes = updatedLexemes.filter((l: Lexeme) => !termsToUpdate.includes(l.term))
+            updatedLexemes = [...updatedLexemes, ...pendingAdditions.value]
+        }
+
+        await deckStore.updateDeck(deckId, { lexemes: updatedLexemes })
+        clearPendingChanges()
+    } catch (e: any) {
+        editError.value = e.message || 'Failed to apply changes'
+    }
+}
+
+const undoChanges = (): void => {
+    clearPendingChanges()
+}
+
+const clearPendingChanges = (): void => {
+    hasPendingChanges.value = false
+    pendingAction.value = null
+    pendingAdditions.value = []
+    pendingRemovals.value = []
+    originalLexemes.value = []
 }
 
 const generateAndStudy = async (): Promise<void> => {
@@ -126,17 +170,17 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
 </script>
 
 <template>
-    <div class="deck-detail">
+    <div class="max-w-7xl mx-auto">
         <div v-if="deckStore.loading" class="loading">
             <div class="spinner"></div>
-            <p>Loading deck...</p>
+            <p class="mt-4">Loading deck...</p>
         </div>
 
-        <div v-else-if="deck" class="deck-content">
-            <div class="deck-header">
+        <div v-else-if="deck">
+            <div class="flex justify-between items-start mb-8">
                 <div>
-                    <h1>{{ deck.title }}</h1>
-                    <div class="tags">
+                    <h1 class="text-3xl font-bold text-foreground mb-2">{{ deck.title }}</h1>
+                    <div class="flex flex-wrap gap-2">
                         <span v-for="tag in deck.tags" :key="tag" class="tag tag-primary">
                             {{ tag }}
                         </span>
@@ -147,26 +191,84 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
                 </button>
             </div>
 
-            <div class="cards-row">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <!-- Lexemes List -->
                 <div class="card">
-                    <h2>Lexemes ({{ deck.lexemes.length }})</h2>
-                    <div class="lexemes-grid">
-                        <div v-for="(lexeme, index) in deck.lexemes" :key="index" class="lexeme-card">
-                            <div class="lexeme-term">{{ lexeme.term }}</div>
-                            <div class="lexeme-meaning">{{ lexeme.meaning }}</div>
-                            <div class="lexeme-pos">{{ lexeme.POS }}</div>
-                            <button @click="handleRemoveLexeme(lexeme.term)" class="btn-remove" title="Remove word">
+                    <h2 class="text-2xl font-semibold mb-4 text-foreground">Lexemes ({{ deck.lexemes.length }})</h2>
+                    <div class="max-h-[500px] overflow-y-auto flex flex-col gap-3">
+                        <div v-for="(lexeme, index) in deck.lexemes" :key="index"
+                            class="bg-secondary p-4 rounded-lg grid grid-cols-[1fr_2fr_auto_auto] gap-4 items-center">
+                            <div class="font-semibold text-foreground">{{ lexeme.term }}</div>
+                            <div class="text-muted-foreground">{{ lexeme.meaning }}</div>
+                            <div class="bg-border px-3 py-1 rounded-full text-sm">{{ lexeme.POS }}</div>
+                            <button @click="handleRemoveLexeme(lexeme.term)"
+                                class="text-destructive text-2xl cursor-pointer p-1 rounded hover:bg-destructive/10 transition-all"
+                                title="Remove word" :disabled="hasPendingChanges">
                                 ×
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Edit Deck -->
-                <div class="card">
-                    <h2>Edit Deck with AI</h2>
-                    <p class="help-text">
+                <!-- Pending Changes Preview -->
+                <div v-if="hasPendingChanges" class="card border-2 border-primary">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-foreground">Pending Changes</h2>
+                        <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                            {{ pendingAction === 'add' ? 'Adding' : pendingAction === 'remove' ? 'Removing' : 'Editing'
+                            }}
+                        </span>
+                    </div>
+
+                    <!-- Removals (shown in red) -->
+                    <div v-if="pendingRemovals.length > 0" class="mb-4">
+                        <h3 class="text-sm font-semibold text-destructive mb-2 flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-destructive"></span>
+                            Will be removed ({{ pendingRemovals.length }})
+                        </h3>
+                        <div class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                            <div v-for="(lexeme, index) in pendingRemovals" :key="'remove-' + index"
+                                class="bg-destructive/10 border border-destructive/30 p-3 rounded-lg grid grid-cols-[1fr_2fr_auto] gap-3 items-center">
+                                <div class="font-semibold text-destructive">{{ lexeme.term }}</div>
+                                <div class="text-destructive/70">{{ lexeme.meaning }}</div>
+                                <div class="bg-destructive/20 px-2 py-0.5 rounded-full text-xs text-destructive">{{
+                                    lexeme.POS }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additions (shown in green) -->
+                    <div v-if="pendingAdditions.length > 0" class="mb-4">
+                        <h3 class="text-sm font-semibold text-green-600 mb-2 flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                            Will be added ({{ pendingAdditions.length }})
+                        </h3>
+                        <div class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                            <div v-for="(lexeme, index) in pendingAdditions" :key="'add-' + index"
+                                class="bg-green-500/10 border border-green-500/30 p-3 rounded-lg grid grid-cols-[1fr_2fr_auto] gap-3 items-center">
+                                <div class="font-semibold text-green-700">{{ lexeme.term }}</div>
+                                <div class="text-green-600/70">{{ lexeme.meaning }}</div>
+                                <div class="bg-green-500/20 px-2 py-0.5 rounded-full text-xs text-green-700">{{
+                                    lexeme.POS }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3 pt-4 border-t border-border">
+                        <button @click="undoChanges" class="btn btn-secondary flex-1">
+                            ✕ Undo
+                        </button>
+                        <button @click="commitChanges" class="btn btn-primary flex-1">
+                            ✓ Commit Changes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Edit Deck (only show when no pending changes) -->
+                <div v-if="!hasPendingChanges" class="card">
+                    <h2 class="text-2xl font-semibold mb-4 text-foreground">Edit Deck with AI</h2>
+                    <p class="text-muted-foreground text-sm mb-4 leading-relaxed">
                         Tell the AI how to modify your deck. Examples:<br />
                         • "Add 10 more common adjectives"<br />
                         • "Remove verbs related to food"<br />
@@ -183,39 +285,43 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
                         :disabled="isEditing || !editInstruction.trim()">
                         {{ isEditing ? 'Processing...' : 'Apply Changes' }}
                     </button>
-
-                    <div v-if="editError" class="error-message mt-2">
-                        {{ editError }}
-                    </div>
                 </div>
             </div>
 
+            <!-- Error message (shown regardless of pending state) -->
+            <div v-if="editError" class="bg-destructive/10 text-destructive p-3 rounded-lg mb-6">
+                {{ editError }}
+            </div>
+
             <!-- Generate Flashcards -->
-            <div class="card study-section">
-                <h2>Generate Flashcards</h2>
-                <p class="help-text">
+            <div class="card text-center">
+                <h2 class="text-2xl font-semibold mb-4 text-foreground">Generate Flashcards</h2>
+                <p class="text-muted-foreground text-sm mb-4">
                     Choose a mode and generate flashcards to start studying
                 </p>
 
-                <div class="mode-selector">
-                    <label class="mode-option">
-                        <input type="radio" v-model="selectedMode" value="simple" />
-                        <div class="mode-card">
-                            <h3>Simple Mode</h3>
-                            <p>Direct meaning recall questions</p>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <label class="cursor-pointer">
+                        <input type="radio" v-model="selectedMode" value="simple" class="hidden peer" />
+                        <div
+                            class="bg-secondary p-6 rounded-lg border-2 border-border transition-all peer-checked:border-primary peer-checked:bg-primary/5">
+                            <h3 class="text-xl font-semibold mb-2 text-foreground">Simple Mode</h3>
+                            <p class="text-muted-foreground text-sm">Direct meaning recall questions</p>
                         </div>
                     </label>
 
-                    <label class="mode-option">
-                        <input type="radio" v-model="selectedMode" value="master" />
-                        <div class="mode-card">
-                            <h3>Master Mode</h3>
-                            <p>Contextual usage and fill-in-the-blank</p>
+                    <label class="cursor-pointer">
+                        <input type="radio" v-model="selectedMode" value="master" class="hidden peer" />
+                        <div
+                            class="bg-secondary p-6 rounded-lg border-2 border-border transition-all peer-checked:border-primary peer-checked:bg-primary/5">
+                            <h3 class="text-xl font-semibold mb-2 text-foreground">Master Mode</h3>
+                            <p class="text-muted-foreground text-sm">Contextual usage and fill-in-the-blank</p>
                         </div>
                     </label>
                 </div>
 
-                <button @click="generateAndStudy" class="btn btn-primary btn-lg" :disabled="generatingFlashcards">
+                <button @click="generateAndStudy" class="btn btn-primary px-8 py-4 text-lg"
+                    :disabled="generatingFlashcards">
                     {{ generatingFlashcards ? 'Generating...' : 'Generate & Study' }}
                 </button>
             </div>
@@ -224,160 +330,5 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
 </template>
 
 <style scoped>
-.deck-detail {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.deck-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    margin-bottom: 2rem;
-}
-
-.deck-header h1 {
-    font-size: 2rem;
-    color: #2d3748;
-    margin-bottom: 0.5rem;
-}
-
-.tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.cards-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-@media (max-width: 768px) {
-    .cards-row {
-        grid-template-columns: 1fr;
-    }
-}
-
-.card h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: #2d3748;
-}
-
-.help-text {
-    color: #718096;
-    font-size: 0.875rem;
-    margin-bottom: 1rem;
-    line-height: 1.6;
-}
-
-.lexemes-grid {
-    max-height: 500px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.lexeme-card {
-    background: #f7fafc;
-    padding: 1rem;
-    border-radius: 8px;
-    display: grid;
-    grid-template-columns: 1fr 2fr auto auto;
-    gap: 1rem;
-    align-items: center;
-    position: relative;
-}
-
-.btn-remove {
-    background: transparent;
-    border: none;
-    color: #e53e3e;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    line-height: 1;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.btn-remove:hover {
-    background: #fed7d7;
-    color: #c53030;
-}
-
-.lexeme-term {
-    font-weight: 600;
-    color: #2d3748;
-}
-
-.lexeme-meaning {
-    color: #4a5568;
-}
-
-.lexeme-pos {
-    background: #e2e8f0;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-}
-
-.error-message {
-    background: #fed7d7;
-    color: #c53030;
-    padding: 0.75rem;
-    border-radius: 8px;
-}
-
-.study-section {
-    text-align: center;
-}
-
-.mode-selector {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.mode-option {
-    cursor: pointer;
-}
-
-.mode-option input[type="radio"] {
-    display: none;
-}
-
-.mode-card {
-    background: #f7fafc;
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 2px solid #e2e8f0;
-    transition: all 0.3s;
-}
-
-.mode-option input[type="radio"]:checked+.mode-card {
-    border-color: #667eea;
-    background: #edf2f7;
-}
-
-.mode-card h3 {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
-    color: #2d3748;
-}
-
-.mode-card p {
-    color: #718096;
-    font-size: 0.875rem;
-}
-
-.btn-lg {
-    padding: 1rem 2rem;
-    font-size: 1.125rem;
-}
+/* Minimal scoped styles - Tailwind handles most */
 </style>
