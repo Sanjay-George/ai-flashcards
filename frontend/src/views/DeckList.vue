@@ -73,9 +73,6 @@ const formatDate = (dateString: string): string => {
                     <RouterLink :to="`/deck/${deck._id}`" class="btn btn-secondary">
                         View Details
                     </RouterLink>
-                    <RouterLink :to="`/study/${deck._id}`" class="btn btn-primary">
-                        Study
-                    </RouterLink>
                     <button @click="handleDelete(deck._id)" class="btn btn-danger">
                         Delete
                     </button>

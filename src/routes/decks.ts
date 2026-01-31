@@ -70,4 +70,31 @@ app.delete('/:id', async (c) => {
     }
 });
 
+// Remove lexeme from deck
+app.delete('/:id/lexemes/:term', async (c) => {
+    try {
+        const deckId = c.req.param('id');
+        const term = decodeURIComponent(c.req.param('term'));
+
+        const deck = await Deck.findById(deckId);
+        if (!deck) {
+            return c.json({ error: 'Deck not found' }, 404);
+        }
+
+        // Filter out the lexeme with matching term
+        const updatedLexemes = deck.lexemes.filter((lexeme: any) => lexeme.term !== term);
+
+        if (updatedLexemes.length === deck.lexemes.length) {
+            return c.json({ error: 'Lexeme not found in deck' }, 404);
+        }
+
+        deck.lexemes = updatedLexemes;
+        await deck.save();
+
+        return c.json(deck);
+    } catch (error: any) {
+        return c.json({ error: error.message }, 500);
+    }
+});
+
 export default app;

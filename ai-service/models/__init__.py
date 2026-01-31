@@ -70,3 +70,15 @@ class ProgressItem(BaseModel):
 
 class ProgressUpdateResponse(BaseModel):
     updated_progress: List[ProgressItem]
+
+
+class ChatRequest(BaseModel):
+    user_message: str
+    question: str
+    answer: str
+    lexeme: Optional[Lexeme] = None
+    pattern: Optional[Pattern] = None
+
+
+class ChatResponse(BaseModel):
+    response: str

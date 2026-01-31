@@ -8,7 +8,8 @@ from models import (
     DeckCreateRequest, DeckCreateResponse,
     DeckEditRequest, DeckEditResponse,
     FlashcardGenerateRequest, FlashcardGenerateResponse,
-    ProgressUpdateRequest, ProgressUpdateResponse
+    ProgressUpdateRequest, ProgressUpdateResponse,
+    ChatRequest, ChatResponse
 )
 
 router = APIRouter()
@@ -118,11 +119,29 @@ Input:
 - Selected mode ("simple" or "master")
 
 Task:
-1. For each lexeme, create one or more flashcards.
-2. Use appropriate question and answer format:
-   - Simple mode: direct meaning recall (e.g., "What does 'hablar' mean?" → "to speak")
-   - Master mode: contextual usage or fill-in-the-blank (e.g., "Complete: Yo ___ español." → "hablo")
-3. Include pattern information when possible.
+1. For each lexeme, create exactly ONE flashcard in the same order as the input lexemes.
+2. The total number of flashcards MUST equal the number of input lexemes.
+3. Determine the base language from the lexeme terms and their meanings (base language = the lexeme term language, English = the meaning language).
+4. Use the mode rules below.
+
+Mode rules:
+- Simple mode: base language → English only.
+  Example: Q: "hablar" A: "to speak".
+  Use a pattern with name "base_to_english".
+
+- Master mode: mix multiple patterns. Include at least one of each where applicable and NEVER repeat the same pattern consecutively:
+  1) base language → English (pattern name: "base_to_english")
+  2) English → base language (pattern name: "english_to_base")
+  3) Fill in the blank in a sentence in the base language (pattern name: "fill_in_blank")
+  4) Conjugated/inflected forms for verbs/adjectives as appropriate (pattern name: "conjugation")
+  5) Articles/gender where relevant (e.g., der/die/das) (pattern name: "article")
+
+Pattern object format:
+{
+  "name": "base_to_english | english_to_base | fill_in_blank | conjugation | article",
+  "pos": "noun | verb | adjective | etc.",
+  "prompt": "short instruction for the learner"
+}
 
 Output JSON:
 {
@@ -170,7 +189,8 @@ Task:
 Output JSON:
 {
   "updated_progress": [
-    {"term": "...", "mastery": 0.82, "next_step": "review soon | continue practicing | mastered"}
+    {"term": "...", "mastery": 0.82,
+        "next_step": "review soon | continue practicing | mastered"}
   ]
 }
 
@@ -197,5 +217,32 @@ async def extract_text_from_image(file: UploadFile = File(...)):
         contents = await file.read()
         text = await ocr_service.extract_text(contents)
         return {"text": text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/chat", response_model=ChatResponse)
+async def chat_about_flashcard(request: ChatRequest):
+    """Answer user questions about a flashcard."""
+    try:
+        system_prompt = """You are a helpful language tutor. Answer the user's question about a flashcard.
+
+    Use the provided flashcard context to give a concise, helpful response. If the user asks for examples,
+    provide 1-3 short examples. If the pattern indicates grammar (e.g., conjugation, article), explain briefly.
+    Respond in plain text.
+    """
+
+        context = {
+            "question": request.question,
+            "answer": request.answer,
+            "lexeme": request.lexeme.dict() if request.lexeme else None,
+            "pattern": request.pattern.dict() if request.pattern else None
+        }
+
+        user_content = f"Context: {json.dumps(context)}\nUser question: {request.user_message}"
+
+        response = await ai_client.generate(system_prompt, user_content, use_json_format=False)
+        return ChatResponse(response=response)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

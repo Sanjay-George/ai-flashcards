@@ -16,6 +16,16 @@ const isEditing = ref<boolean>(false)
 const editError = ref<string>('')
 const generatingFlashcards = ref<boolean>(false)
 const selectedMode = ref<'simple' | 'master'>('simple')
+const sessionSize = 10
+
+const pickRandomLexemes = (lexemes: Lexeme[], count: number): Lexeme[] => {
+    const array = [...lexemes]
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+            ;[array[i], array[j]] = [array[j], array[i]]
+    }
+    return array.slice(0, Math.min(count, array.length))
+}
 
 onMounted(async () => {
     await deckStore.fetchDeck(deckId)
@@ -72,10 +82,11 @@ const generateAndStudy = async (): Promise<void> => {
     generatingFlashcards.value = true
 
     try {
+        const selectedLexemes = pickRandomLexemes(deck.value.lexemes, sessionSize)
         const result = await flashcardStore.generateFlashcards(
             {
                 title: deck.value.title,
-                lexemes: deck.value.lexemes
+                lexemes: selectedLexemes
             },
             selectedMode.value
         )
@@ -83,7 +94,7 @@ const generateAndStudy = async (): Promise<void> => {
         // Save flashcards to database
         const flashcardsToSave = result.flashcards.map((fc: any, index: number) => ({
             deckId: deckId,
-            lexemeId: deck.value!.lexemes[index % deck.value!.lexemes.length].term,
+            lexemeId: selectedLexemes[index % selectedLexemes.length].term,
             question: fc.question,
             answer: fc.answer,
             pattern: fc.pattern,
@@ -91,7 +102,8 @@ const generateAndStudy = async (): Promise<void> => {
             ratings: []
         }))
 
-        await flashcardStore.saveFlashcards(flashcardsToSave)
+        const saved = await flashcardStore.saveFlashcards(flashcardsToSave)
+        flashcardStore.setSessionFlashcards(saved)
 
         // Navigate to study session
         router.push(`/study/${deckId}`)
@@ -99,6 +111,16 @@ const generateAndStudy = async (): Promise<void> => {
         editError.value = e.message || 'Failed to generate flashcards'
     } finally {
         generatingFlashcards.value = false
+    }
+}
+
+const handleRemoveLexeme = async (term: string): Promise<void> => {
+    if (!confirm(`Remove "${term}" from this deck?`)) return
+
+    try {
+        await deckStore.removeLexeme(deckId, term)
+    } catch (e: any) {
+        editError.value = e.message || 'Failed to remove lexeme'
     }
 }
 </script>
@@ -134,6 +156,9 @@ const generateAndStudy = async (): Promise<void> => {
                             <div class="lexeme-term">{{ lexeme.term }}</div>
                             <div class="lexeme-meaning">{{ lexeme.meaning }}</div>
                             <div class="lexeme-pos">{{ lexeme.POS }}</div>
+                            <button @click="handleRemoveLexeme(lexeme.term)" class="btn-remove" title="Remove word">
+                                ×
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -262,9 +287,27 @@ const generateAndStudy = async (): Promise<void> => {
     padding: 1rem;
     border-radius: 8px;
     display: grid;
-    grid-template-columns: 1fr 2fr auto;
+    grid-template-columns: 1fr 2fr auto auto;
     gap: 1rem;
     align-items: center;
+    position: relative;
+}
+
+.btn-remove {
+    background: transparent;
+    border: none;
+    color: #e53e3e;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-remove:hover {
+    background: #fed7d7;
+    color: #c53030;
 }
 
 .lexeme-term {

@@ -11,6 +11,7 @@ export { Flashcard, Pattern }
 
 export const useFlashcardStore = defineStore('flashcard', () => {
     const flashcards = ref<Flashcard[]>([])
+    const sessionFlashcards = ref<Flashcard[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
 
@@ -78,13 +79,24 @@ export const useFlashcardStore = defineStore('flashcard', () => {
         }
     }
 
+    const setSessionFlashcards = (cards: Flashcard[]) => {
+        sessionFlashcards.value = cards
+    }
+
+    const clearSessionFlashcards = () => {
+        sessionFlashcards.value = []
+    }
+
     return {
         flashcards,
+        sessionFlashcards,
         loading,
         error,
         fetchFlashcards,
         generateFlashcards,
         saveFlashcards,
-        rateFlashcard
+        rateFlashcard,
+        setSessionFlashcards,
+        clearSessionFlashcards
     }
 })

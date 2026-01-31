@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useDeckStore } from '../stores/deckStore'
+import { aiApi } from '../services/api'
 import type { Flashcard, Deck } from '../types/index'
 
 const route = useRoute()
@@ -14,26 +15,53 @@ const deckId = route.params.id as string
 const currentIndex = ref<number>(0)
 const showAnswer = ref<boolean>(false)
 const sessionComplete = ref<boolean>(false)
+const sessionSize = 10
+const chatInput = ref<string>('')
+const chatAnswer = ref<string>('')
+const chatLoading = ref<boolean>(false)
+const chatError = ref<string>('')
+
+const pickRandom = <T,>(items: T[], count: number): T[] => {
+    const array = [...items]
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+            ;[array[i], array[j]] = [array[j], array[i]]
+    }
+    return array.slice(0, Math.min(count, array.length))
+}
 
 onMounted(async () => {
-    await Promise.all([
-        deckStore.fetchDeck(deckId),
-        flashcardStore.fetchFlashcards(deckId)
-    ])
+    await deckStore.fetchDeck(deckId)
 
-    if (flashcardStore.flashcards.length === 0) {
-        // No flashcards generated yet, redirect to deck detail
-        router.push(`/deck/${deckId}`)
+    if (flashcardStore.sessionFlashcards.length === 0) {
+        await flashcardStore.fetchFlashcards(deckId)
+
+        if (flashcardStore.flashcards.length === 0) {
+            // No flashcards generated yet, redirect to deck detail
+            router.push(`/deck/${deckId}`)
+            return
+        }
+
+        flashcardStore.setSessionFlashcards(
+            pickRandom(flashcardStore.flashcards, sessionSize)
+        )
     }
 })
 
 const deck = computed<Deck | null>(() => deckStore.currentDeck)
-const flashcards = computed<Flashcard[]>(() => flashcardStore.flashcards)
+const flashcards = computed<Flashcard[]>(() =>
+    flashcardStore.sessionFlashcards.length > 0
+        ? flashcardStore.sessionFlashcards
+        : flashcardStore.flashcards
+)
 const currentCard = computed<Flashcard | undefined>(() => flashcards.value[currentIndex.value])
 const progress = computed<number>(() => {
     if (flashcards.value.length === 0) return 0
     return Math.round(((currentIndex.value + 1) / flashcards.value.length) * 100)
 })
+
+const flipDurationMs = 600
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const flipCard = (): void => {
     showAnswer.value = !showAnswer.value
@@ -42,24 +70,61 @@ const flipCard = (): void => {
 const rateCard = async (rating: number): Promise<void> => {
     if (!currentCard.value) return
 
-    await flashcardStore.rateFlashcard(currentCard.value._id, rating)
+    showAnswer.value = false
+    const ratePromise = flashcardStore.rateFlashcard(currentCard.value._id, rating)
 
     if (currentIndex.value < flashcards.value.length - 1) {
+        await wait(flipDurationMs)
         currentIndex.value++
-        showAnswer.value = false
     } else {
         sessionComplete.value = true
     }
+
+    await ratePromise
 }
 
 const restartSession = (): void => {
     currentIndex.value = 0
     showAnswer.value = false
     sessionComplete.value = false
+
+    if (flashcardStore.flashcards.length > 0) {
+        flashcardStore.setSessionFlashcards(
+            pickRandom(flashcardStore.flashcards, sessionSize)
+        )
+    }
 }
 
 const goToDeck = (): void => {
     router.push(`/deck/${deckId}`)
+}
+
+const askFlashcardQuestion = async (): Promise<void> => {
+    if (!currentCard.value || !chatInput.value.trim()) return
+
+    chatLoading.value = true
+    chatError.value = ''
+    chatAnswer.value = ''
+
+    try {
+        const response = await aiApi.post('/chat', {
+            user_message: chatInput.value.trim(),
+            question: currentCard.value.question,
+            answer: currentCard.value.answer,
+            lexeme: {
+                term: currentCard.value.lexemeId,
+                meaning: currentCard.value.answer,
+                POS: currentCard.value.pattern?.pos || 'unknown'
+            },
+            pattern: currentCard.value.pattern
+        })
+
+        chatAnswer.value = response.data.response
+    } catch (e: any) {
+        chatError.value = e.message || 'Failed to get response'
+    } finally {
+        chatLoading.value = false
+    }
 }
 </script>
 
@@ -134,6 +199,22 @@ const goToDeck = (): void => {
                     <button @click="rateCard(5)" class="btn rating-btn rating-5">
                         🎯 Perfect
                     </button>
+                </div>
+
+                <div class="chat-section">
+                    <p class="chat-title">Ask a question about this card</p>
+                    <div class="chat-input-row">
+                        <input v-model="chatInput" class="chat-input" type="text"
+                            placeholder="e.g., How do I use this in a sentence?" :disabled="chatLoading" />
+                        <button @click="askFlashcardQuestion" class="btn btn-secondary"
+                            :disabled="chatLoading || !chatInput.trim()">
+                            {{ chatLoading ? 'Asking...' : 'Ask' }}
+                        </button>
+                    </div>
+                    <p v-if="chatError" class="chat-error">{{ chatError }}</p>
+                    <div v-if="chatAnswer" class="chat-answer">
+                        {{ chatAnswer }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -265,6 +346,52 @@ const goToDeck = (): void => {
     justify-content: center;
     gap: 0.75rem;
     flex-wrap: wrap;
+}
+
+.chat-section {
+    margin-top: 1.5rem;
+    text-align: left;
+    background: #f7fafc;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.chat-title {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #2d3748;
+}
+
+.chat-input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.chat-error {
+    color: #c53030;
+    margin-top: 0.5rem;
+}
+
+.chat-answer {
+    margin-top: 0.75rem;
+    background: white;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
 }
 
 .rating-btn {
