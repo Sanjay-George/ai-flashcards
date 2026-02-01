@@ -136,6 +136,8 @@ Task:
 2. The total number of flashcards MUST equal the number of input lexemes.
 3. Determine the base language from the lexeme terms and their meanings (base language = the lexeme term language, English = the meaning language).
 4. Use the mode rules below.
+5. Always frame the question in English so user knows what is being asked.
+
 
 Mode rules:
 - Simple mode: base language → English only.
@@ -152,11 +154,12 @@ Mode rules:
      Include the infinitive and tense/form required.
      Example: Q: "sprechen (past participle)" A: "gesprochen"
   5) Articles/gender where relevant (e.g., der/die/das) (pattern name: "article")
+  
 
 Pattern object format:
 {
   "name": "base_to_english | english_to_base | fill_in_blank | conjugation | article",
-  "pos": "noun | verb | adjective | etc.",
+  "pos": "noun | verb |     adjective | etc.",
   "prompt": "short instruction for the learner"
 }
 

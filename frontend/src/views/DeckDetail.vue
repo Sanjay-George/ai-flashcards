@@ -28,10 +28,7 @@ const pendingRemovals = ref<Lexeme[]>([])
 const originalLexemes = ref<Lexeme[]>([])
 
 // Ownership check
-const isOwner = computed(() => {
-    console.log('Deck userId:', deck.value?.userId, 'Auth userId:', authStore.userId)
-    return deck.value?.userId === authStore.userId
-})
+const isOwner = computed(() => deck.value?.userId === authStore.userId)
 
 onMounted(async () => {
     await deckStore.fetchDeck(deckId)

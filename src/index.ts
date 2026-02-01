@@ -12,8 +12,6 @@ app.use('/*', cors());
 // MongoDB connection
 const MONGODB_URI = `mongodb://${encodeURIComponent(process.env.MONGO_USER as string)}:${encodeURIComponent(process.env.MONGO_PASSWORD as string)}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${encodeURIComponent(process.env.MONGO_DB as string)}?authSource=admin` || 'mongodb://localhost:27017/flashcards_ai';
 
-console.log(MONGODB_URI);
-
 mongoose.connect(MONGODB_URI).then(() => {
     console.log('✅ Connected to MongoDB');
 }).catch((err) => {
