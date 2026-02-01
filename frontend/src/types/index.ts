@@ -16,6 +16,7 @@ export interface Deck {
     _id: string;
     title: string;
     tags: string[];
+    language?: string;  // Language being learned (e.g., 'de', 'es', 'fr')
     lexemes: Lexeme[];
     createdAt: string;
     updatedAt: string;
@@ -51,6 +52,7 @@ export interface CreateDeckRequest {
 export interface CreateDeckResponse {
     title: string;
     tags: string[];
+    language?: string;  // Detected language code (e.g., 'de', 'es', 'fr')
     lexemes: Lexeme[];
 }
 

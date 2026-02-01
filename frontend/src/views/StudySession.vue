@@ -21,6 +21,14 @@ const chatAnswer = ref<string>('')
 const chatLoading = ref<boolean>(false)
 const chatError = ref<string>('')
 
+// Language-specific reference URLs
+const referenceUrls: Record<string, { baseUrl: string; name: string }> = {
+    de: { baseUrl: 'https://www.verbformen.de/konjugation/?w=', name: 'Verbformen.de' },
+    es: { baseUrl: 'https://www.spanishdict.com/translate/', name: 'SpanishDict' },
+    fr: { baseUrl: 'https://www.wordreference.com/fren/', name: 'WordReference' },
+    // Add more languages as needed
+}
+
 onMounted(async () => {
     await deckStore.fetchDeck(deckId)
 
@@ -43,6 +51,23 @@ const progress = computed<number>(() => {
 const canGoBack = computed(() => currentIndex.value > 0)
 const canGoForward = computed(() => currentIndex.value < highestReviewedIndex.value)
 const isReviewingPrevious = computed(() => currentIndex.value < highestReviewedIndex.value)
+
+// Reference URL for the current card
+const referenceUrl = computed<{ url: string; name: string } | null>(() => {
+    if (!currentCard.value || !deck.value?.language) return null
+
+    const langConfig = referenceUrls[deck.value.language]
+    if (!langConfig) return null
+
+    // Extract the term from lexemeId
+    const term = currentCard.value.lexemeId || currentCard.value.lexeme?.term
+    if (!term) return null
+
+    return {
+        url: langConfig.baseUrl + encodeURIComponent(term),
+        name: langConfig.name
+    }
+})
 
 const flipDurationMs = 600
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -215,6 +240,18 @@ const askFlashcardQuestion = async (): Promise<void> => {
                         class="absolute w-full min-h-[400px] backface-hidden rotate-y-180 flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary to-purple-600 text-white rounded-xl shadow-lg">
                         <div class="text-sm font-semibold uppercase tracking-wide opacity-80 mb-6">Answer</div>
                         <div class="text-3xl font-semibold text-center leading-relaxed">{{ currentCard.answer }}</div>
+
+                        <!-- Reference Link -->
+                        <div v-if="referenceUrl" class="mt-6">
+                            <a :href="referenceUrl.url" target="_blank" rel="noopener noreferrer"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-all text-sm font-medium">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                View on {{ referenceUrl.name }}
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

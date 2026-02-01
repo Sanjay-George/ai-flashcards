@@ -38,12 +38,15 @@ Task:
    - term
    - meaning (in user's learning language)
    - part of speech (POS: noun | verb | adjective | etc.)
-3. Suggest:
+3. Detect the language being learned from the lexeme terms.
+4. Suggest:
    - deck title
+   - language code (ISO 639-1: 'de' for German, 'es' for Spanish, 'fr' for French, 'it' for Italian, 'pt' for Portuguese, 'nl' for Dutch, 'ja' for Japanese, 'zh' for Chinese, 'ko' for Korean, etc.)
    - optional tags (e.g., verbs, travel, beginner)
 Output JSON:
 {
   "title": "...",
+  "language": "de",
   "tags": ["...", "..."],
   "lexemes": [
     {"term": "...", "meaning": "...", "POS": "..."},
@@ -80,9 +83,19 @@ Input:
 - Current deck JSON
 - User instruction
 
+Field definitions:
+- "term": The word/phrase in the TARGET language being learned (e.g., German, Spanish). This is what the student is trying to learn.
+- "meaning": The ENGLISH translation/definition of the term.
+- "POS": Part of speech (noun, verb, adjective, etc.)
+
 Task:
 - Interpret the instruction to add, edit, or remove lexemes.
-- Maintain consistent meanings and POS.
+- When modifying terms (e.g., adding articles to German nouns), update the "term" field, NOT the "meaning" field.
+- The "meaning" field should always remain in English.
+- Examples:
+  * Adding German article: term "Zimmer" → term "das Zimmer", meaning stays "room"
+  * Adding Spanish article: term "casa" → term "la casa", meaning stays "house"
+
 Output JSON:
 {
   "action": "add | edit | remove",

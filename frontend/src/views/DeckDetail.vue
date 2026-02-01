@@ -167,6 +167,30 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
         editError.value = e.message || 'Failed to remove lexeme'
     }
 }
+
+// Available languages with their display names
+const availableLanguages = [
+    { code: 'de', name: 'German' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'it', name: 'Italian' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'nl', name: 'Dutch' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ko', name: 'Korean' },
+]
+
+const handleLanguageChange = async (event: Event): Promise<void> => {
+    const target = event.target as HTMLSelectElement
+    const newLanguage = target.value || undefined
+
+    try {
+        await deckStore.updateDeck(deckId, { language: newLanguage })
+    } catch (e: any) {
+        editError.value = e.message || 'Failed to update language'
+    }
+}
 </script>
 
 <template>
@@ -180,10 +204,19 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
             <div class="flex justify-between items-start mb-8">
                 <div>
                     <h1 class="text-3xl font-bold text-foreground mb-2">{{ deck.title }}</h1>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap gap-2 items-center">
                         <span v-for="tag in deck.tags" :key="tag" class="tag tag-primary">
                             {{ tag }}
                         </span>
+                        <!-- Language Selector -->
+                        <select :value="deck.language || ''" @change="handleLanguageChange"
+                            class="ml-2 px-3 py-1 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                            title="Reference language">
+                            <option value="">No language</option>
+                            <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">
+                                {{ lang.name }}
+                            </option>
+                        </select>
                     </div>
                 </div>
                 <button @click="$router.back()" class="btn btn-secondary">

@@ -83,6 +83,23 @@ const resetForm = () => {
     generatedDeck.value = null
     error.value = ''
 }
+
+// Language display helper
+const languageNames: Record<string, string> = {
+    de: 'German',
+    es: 'Spanish',
+    fr: 'French',
+    it: 'Italian',
+    pt: 'Portuguese',
+    nl: 'Dutch',
+    ja: 'Japanese',
+    zh: 'Chinese',
+    ko: 'Korean',
+}
+
+const getLanguageName = (code: string): string => {
+    return languageNames[code] || code.toUpperCase()
+}
 </script>
 
 <template>
@@ -161,9 +178,13 @@ const resetForm = () => {
 
                     <div class="form-group">
                         <label>Tags</label>
-                        <div class="flex flex-wrap gap-2">
+                        <div class="flex flex-wrap gap-2 items-center">
                             <span v-for="(tag, index) in generatedDeck.tags" :key="index" class="tag tag-primary">
                                 {{ tag }}
+                            </span>
+                            <span v-if="generatedDeck.language"
+                                class="tag bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                🌐 {{ getLanguageName(generatedDeck.language) }}
                             </span>
                         </div>
                     </div>

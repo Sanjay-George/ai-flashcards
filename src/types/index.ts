@@ -16,6 +16,7 @@ export interface IDeck {
     _id?: string;
     title: string;
     tags: string[];
+    language?: string;  // Language being learned (e.g., 'de', 'es', 'fr')
     lexemes: ILexeme[];
     createdAt?: Date;
     updatedAt?: Date;

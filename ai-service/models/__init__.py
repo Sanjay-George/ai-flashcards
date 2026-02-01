@@ -18,6 +18,7 @@ class DeckCreateRequest(BaseModel):
 class DeckCreateResponse(BaseModel):
     title: str
     tags: List[str]
+    language: Optional[str] = None  # Language code (e.g., 'de', 'es', 'fr')
     lexemes: List[Lexeme]
 
 

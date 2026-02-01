@@ -15,6 +15,7 @@ export interface ILexeme {
 export interface IDeck extends Document {
     title: string;
     tags: string[];
+    language?: string;  // Language being learned (e.g., 'de', 'es', 'fr')
     lexemes: ILexeme[];
     createdAt: Date;
     updatedAt: Date;
@@ -35,6 +36,7 @@ const LexemeSchema = new Schema<ILexeme>({
 const DeckSchema = new Schema<IDeck>({
     title: { type: String, required: true },
     tags: [{ type: String }],
+    language: { type: String },  // Optional language code
     lexemes: [LexemeSchema],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
