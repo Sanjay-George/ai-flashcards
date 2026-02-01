@@ -226,7 +226,7 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
                             <span class="w-3 h-3 rounded-full bg-destructive"></span>
                             Will be removed ({{ pendingRemovals.length }})
                         </h3>
-                        <div class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                        <div class="flex flex-col gap-2 max-h-92 overflow-y-auto">
                             <div v-for="(lexeme, index) in pendingRemovals" :key="'remove-' + index"
                                 class="bg-destructive/10 border border-destructive/30 p-3 rounded-lg grid grid-cols-[1fr_2fr_auto] gap-3 items-center">
                                 <div class="font-semibold text-destructive">{{ lexeme.term }}</div>
@@ -243,7 +243,7 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
                             <span class="w-3 h-3 rounded-full bg-green-500"></span>
                             Will be added ({{ pendingAdditions.length }})
                         </h3>
-                        <div class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                        <div class="flex flex-col gap-2 max-h-92 overflow-y-auto">
                             <div v-for="(lexeme, index) in pendingAdditions" :key="'add-' + index"
                                 class="bg-green-500/10 border border-green-500/30 p-3 rounded-lg grid grid-cols-[1fr_2fr_auto] gap-3 items-center">
                                 <div class="font-semibold text-green-700">{{ lexeme.term }}</div>
