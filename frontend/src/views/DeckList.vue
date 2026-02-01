@@ -1,17 +1,38 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { onMounted } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
+import { useAuthStore } from '../stores/authStore'
 
+const router = useRouter()
 const deckStore = useDeckStore()
+const authStore = useAuthStore()
 
 onMounted(() => {
     deckStore.fetchDecks()
 })
 
+// Check if user owns a deck
+const isOwner = (userId: string): boolean => {
+    return authStore.userId === userId
+}
+
 const handleDelete = async (id: string): Promise<void> => {
     if (confirm('Are you sure you want to delete this deck?')) {
         await deckStore.deleteDeck(id)
+    }
+}
+
+const handleClone = async (id: string): Promise<void> => {
+    if (!authStore.isAuthenticated) {
+        router.push('/login')
+        return
+    }
+    try {
+        const clonedDeck = await deckStore.cloneDeck(id)
+        router.push(`/deck/${clonedDeck._id}`)
+    } catch (e) {
+        console.error('Failed to clone deck')
     }
 }
 
@@ -27,9 +48,12 @@ const formatDate = (dateString: string): string => {
 <template>
     <div class="max-w-7xl mx-auto">
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-foreground">My Flashcard Decks</h1>
-            <RouterLink to="/create" class="btn btn-primary">
+            <h1 class="text-3xl font-bold text-foreground">Flashcard Decks</h1>
+            <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary">
                 + Create New Deck
+            </RouterLink>
+            <RouterLink v-else to="/login" class="btn btn-primary">
+                Sign in to Create
             </RouterLink>
         </div>
 
@@ -47,15 +71,35 @@ const formatDate = (dateString: string): string => {
             <div class="text-7xl mb-4">📚</div>
             <h2 class="text-2xl font-semibold text-foreground mb-2">No decks yet</h2>
             <p class="text-muted-foreground mb-8">Create your first deck to start learning!</p>
-            <RouterLink to="/create" class="btn btn-primary">
+            <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary">
                 Create Deck
+            </RouterLink>
+            <RouterLink v-else to="/login" class="btn btn-primary">
+                Sign in to Create
             </RouterLink>
         </div>
 
         <div v-else class="grid-2">
             <div v-for="deck in deckStore.decks" :key="deck._id" class="card flex flex-col gap-4">
                 <div class="flex justify-between items-start">
-                    <h3 class="text-xl font-semibold text-foreground">{{ deck.title }}</h3>
+                    <div>
+                        <h3 class="text-xl font-semibold text-foreground">{{ deck.title }}</h3>
+                        <!-- Ownership & visibility badges -->
+                        <div class="flex gap-2 mt-1">
+                            <span v-if="isOwner(deck.userId)"
+                                class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                Yours
+                            </span>
+                            <span v-else
+                                class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                Public
+                            </span>
+                            <span v-if="deck.isPublic && isOwner(deck.userId)"
+                                class="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                                🌐 Shared
+                            </span>
+                        </div>
+                    </div>
                     <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold">
                         {{ deck.lexemes.length }} words
                     </span>
@@ -76,8 +120,14 @@ const formatDate = (dateString: string): string => {
                     <RouterLink :to="`/deck/${deck._id}`" class="btn btn-secondary flex-1 text-sm py-2">
                         View Details
                     </RouterLink>
-                    <button @click="handleDelete(deck._id)" class="btn btn-danger flex-1 text-sm py-2">
+                    <!-- Owner actions -->
+                    <button v-if="isOwner(deck.userId)" @click="handleDelete(deck._id)"
+                        class="btn btn-danger flex-1 text-sm py-2">
                         Delete
+                    </button>
+                    <!-- Non-owner: Clone button -->
+                    <button v-else @click="handleClone(deck._id)" class="btn btn-primary flex-1 text-sm py-2">
+                        Clone to Study
                     </button>
                 </div>
             </div>

@@ -1,8 +1,14 @@
 import { Hono } from 'hono';
 import { Deck } from '../models/Deck';
-import type { IDeck, APIError, APISuccessMessage, ILexeme } from '../types/index';
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth';
+import type { AuthUser } from '../middleware/auth';
+import type { IDeck } from '../types/index';
 
-const app = new Hono();
+type Variables = {
+    user: AuthUser | null;
+};
+
+const app = new Hono<{ Variables: Variables }>();
 
 /**
  * SM-2 Spaced Repetition Algorithm
@@ -51,81 +57,204 @@ function calculateSRS(
     return { easeFactor, interval, repetitions, nextReviewDate };
 }
 
-// Get all decks
-app.get('/', async (c) => {
+// Get all decks (user's own + public decks)
+app.get('/', optionalAuthMiddleware, async (c) => {
     try {
-        const decks = await Deck.find().sort({ updatedAt: -1 });
+        const user = c.get('user') as AuthUser | null;
+
+        let query: any;
+        if (user) {
+            // Authenticated: show user's decks + public decks
+            query = {
+                $or: [
+                    { userId: user.uid },
+                    { isPublic: true }
+                ]
+            };
+        } else {
+            // Not authenticated: show only public decks
+            query = { isPublic: true };
+        }
+
+        const decks = await Deck.find(query).sort({ updatedAt: -1 });
         return c.json(decks);
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }
 });
 
-// Get single deck
-app.get('/:id', async (c) => {
+// Get user's own decks only
+app.get('/my', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as AuthUser;
+        const decks = await Deck.find({ userId: user.uid }).sort({ updatedAt: -1 });
+        return c.json(decks);
+    } catch (error: any) {
+        return c.json({ error: error.message }, 500);
+    }
+});
+
+// Get public decks (browse)
+app.get('/public', async (c) => {
+    try {
+        const decks = await Deck.find({ isPublic: true }).sort({ updatedAt: -1 });
+        return c.json(decks);
+    } catch (error: any) {
+        return c.json({ error: error.message }, 500);
+    }
+});
+
+// Get single deck (must be owner or deck must be public)
+app.get('/:id', optionalAuthMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as AuthUser | null;
         const deck = await Deck.findById(c.req.param('id'));
+
         if (!deck) {
             return c.json({ error: 'Deck not found' }, 404);
         }
+
+        // Check access: must be owner or deck must be public
+        if (!deck.isPublic && deck.userId !== user?.uid) {
+            return c.json({ error: 'Access denied' }, 403);
+        }
+
         return c.json(deck);
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }
 });
 
-// Create deck
-app.post('/', async (c) => {
+// Create deck (authenticated only)
+app.post('/', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as AuthUser;
         const body = await c.req.json<Partial<IDeck>>();
-        const deck = new Deck(body);
+
+        const deck = new Deck({
+            ...body,
+            userId: user.uid,
+            isPublic: body.isPublic ?? false
+        });
         await deck.save();
+
         return c.json(deck, 201);
     } catch (error: any) {
         return c.json({ error: error.message }, 400);
     }
 });
 
-// Update deck
-app.put('/:id', async (c) => {
+// Clone a public deck (authenticated only)
+app.post('/:id/clone', authMiddleware, async (c) => {
     try {
-        const body = await c.req.json<Partial<IDeck>>();
-        const deck = await Deck.findByIdAndUpdate(
-            c.req.param('id'),
-            body,
-            { new: true }
-        );
-        if (!deck) {
+        const user = c.get('user') as AuthUser;
+        const originalDeck = await Deck.findById(c.req.param('id'));
+
+        if (!originalDeck) {
             return c.json({ error: 'Deck not found' }, 404);
         }
-        return c.json(deck);
+
+        // Can only clone public decks (or your own)
+        if (!originalDeck.isPublic && originalDeck.userId !== user.uid) {
+            return c.json({ error: 'Cannot clone private deck' }, 403);
+        }
+
+        // Create a copy with fresh SRS data
+        const clonedLexemes = originalDeck.lexemes.map((lexeme: any) => ({
+            term: lexeme.term,
+            meaning: lexeme.meaning,
+            POS: lexeme.POS,
+            easeFactor: 2.5,
+            interval: 0,
+            repetitions: 0,
+            nextReviewDate: new Date()
+        }));
+
+        const clonedDeck = new Deck({
+            title: `${originalDeck.title} (Copy)`,
+            tags: originalDeck.tags,
+            language: originalDeck.language,
+            userId: user.uid,
+            isPublic: false,  // Clones are private by default
+            lexemes: clonedLexemes
+        });
+
+        await clonedDeck.save();
+        return c.json(clonedDeck, 201);
     } catch (error: any) {
         return c.json({ error: error.message }, 400);
     }
 });
 
-// Delete deck
-app.delete('/:id', async (c) => {
+// Update deck (owner only)
+app.put('/:id', authMiddleware, async (c) => {
     try {
-        const deck = await Deck.findByIdAndDelete(c.req.param('id'));
+        const user = c.get('user') as AuthUser;
+        const deck = await Deck.findById(c.req.param('id'));
+
         if (!deck) {
             return c.json({ error: 'Deck not found' }, 404);
         }
+
+        // Only owner can edit
+        if (deck.userId !== user.uid) {
+            return c.json({ error: 'Only the owner can edit this deck' }, 403);
+        }
+
+        const body = await c.req.json<Partial<IDeck>>();
+
+        // Don't allow changing userId
+        delete body.userId;
+
+        const updatedDeck = await Deck.findByIdAndUpdate(
+            c.req.param('id'),
+            body,
+            { new: true }
+        );
+
+        return c.json(updatedDeck);
+    } catch (error: any) {
+        return c.json({ error: error.message }, 400);
+    }
+});
+
+// Delete deck (owner only)
+app.delete('/:id', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as AuthUser;
+        const deck = await Deck.findById(c.req.param('id'));
+
+        if (!deck) {
+            return c.json({ error: 'Deck not found' }, 404);
+        }
+
+        // Only owner can delete
+        if (deck.userId !== user.uid) {
+            return c.json({ error: 'Only the owner can delete this deck' }, 403);
+        }
+
+        await Deck.findByIdAndDelete(c.req.param('id'));
         return c.json({ message: 'Deck deleted successfully' });
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }
 });
 
-// Remove lexeme from deck
-app.delete('/:id/lexemes/:term', async (c) => {
+// Remove lexeme from deck (owner only)
+app.delete('/:id/lexemes/:term', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as AuthUser;
         const deckId = c.req.param('id');
         const term = decodeURIComponent(c.req.param('term'));
 
         const deck = await Deck.findById(deckId);
         if (!deck) {
             return c.json({ error: 'Deck not found' }, 404);
+        }
+
+        // Only owner can modify
+        if (deck.userId !== user.uid) {
+            return c.json({ error: 'Only the owner can modify this deck' }, 403);
         }
 
         // Filter out the lexeme with matching term
@@ -144,9 +273,10 @@ app.delete('/:id/lexemes/:term', async (c) => {
     }
 });
 
-// Get lexemes due for review (SRS)
-app.get('/:id/lexemes/due', async (c) => {
+// Get lexemes due for review (owner only - SRS is personal)
+app.get('/:id/lexemes/due', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as AuthUser;
         const deckId = c.req.param('id');
         const limit = parseInt(c.req.query('limit') || '10');
         const now = new Date();
@@ -154,6 +284,11 @@ app.get('/:id/lexemes/due', async (c) => {
         const deck = await Deck.findById(deckId);
         if (!deck) {
             return c.json({ error: 'Deck not found' }, 404);
+        }
+
+        // Only owner can study (SRS data is personal)
+        if (deck.userId !== user.uid) {
+            return c.json({ error: 'Clone this deck to study it' }, 403);
         }
 
         // Sort lexemes by due date and priority
@@ -182,9 +317,10 @@ app.get('/:id/lexemes/due', async (c) => {
     }
 });
 
-// Rate a lexeme (update SRS data)
-app.post('/:id/lexemes/:term/rate', async (c) => {
+// Rate a lexeme (owner only)
+app.post('/:id/lexemes/:term/rate', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as AuthUser;
         const deckId = c.req.param('id');
         const term = decodeURIComponent(c.req.param('term'));
         const body = await c.req.json<{ rating: number }>();
@@ -192,6 +328,11 @@ app.post('/:id/lexemes/:term/rate', async (c) => {
         const deck = await Deck.findById(deckId);
         if (!deck) {
             return c.json({ error: 'Deck not found' }, 404);
+        }
+
+        // Only owner can rate
+        if (deck.userId !== user.uid) {
+            return c.json({ error: 'Clone this deck to study it' }, 403);
         }
 
         const lexemeIndex = deck.lexemes.findIndex((l: any) => l.term === term);

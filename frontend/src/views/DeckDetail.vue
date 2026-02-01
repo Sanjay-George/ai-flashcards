@@ -3,12 +3,14 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
 import { useFlashcardStore } from '../stores/flashcardStore'
+import { useAuthStore } from '../stores/authStore'
 import type { Deck, Lexeme } from '../types/index'
 
 const route = useRoute()
 const router = useRouter()
 const deckStore = useDeckStore()
 const flashcardStore = useFlashcardStore()
+const authStore = useAuthStore()
 
 const deckId = route.params.id as string
 const editInstruction = ref<string>('')
@@ -24,6 +26,12 @@ const pendingAction = ref<'add' | 'remove' | 'edit' | null>(null)
 const pendingAdditions = ref<Lexeme[]>([])
 const pendingRemovals = ref<Lexeme[]>([])
 const originalLexemes = ref<Lexeme[]>([])
+
+// Ownership check
+const isOwner = computed(() => {
+    console.log('Deck userId:', deck.value?.userId, 'Auth userId:', authStore.userId)
+    return deck.value?.userId === authStore.userId
+})
 
 onMounted(async () => {
     await deckStore.fetchDeck(deckId)
@@ -191,6 +199,30 @@ const handleLanguageChange = async (event: Event): Promise<void> => {
         editError.value = e.message || 'Failed to update language'
     }
 }
+
+// Toggle deck visibility (public/private)
+const handleVisibilityToggle = async (): Promise<void> => {
+    if (!deck.value) return
+    try {
+        await deckStore.toggleVisibility(deckId, !deck.value.isPublic)
+    } catch (e: any) {
+        editError.value = e.message || 'Failed to update visibility'
+    }
+}
+
+// Clone deck (for non-owners)
+const handleClone = async (): Promise<void> => {
+    if (!authStore.isAuthenticated) {
+        router.push('/login')
+        return
+    }
+    try {
+        const clonedDeck = await deckStore.cloneDeck(deckId)
+        router.push(`/deck/${clonedDeck._id}`)
+    } catch (e: any) {
+        editError.value = e.message || 'Failed to clone deck'
+    }
+}
 </script>
 
 <template>
@@ -203,13 +235,24 @@ const handleLanguageChange = async (event: Event): Promise<void> => {
         <div v-else-if="deck">
             <div class="flex justify-between items-start mb-8">
                 <div>
-                    <h1 class="text-3xl font-bold text-foreground mb-2">{{ deck.title }}</h1>
+                    <div class="flex items-center gap-3 mb-2">
+                        <h1 class="text-3xl font-bold text-foreground">{{ deck.title }}</h1>
+                        <!-- Ownership & visibility badges -->
+                        <span v-if="isOwner"
+                            class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            Yours
+                        </span>
+                        <span v-else
+                            class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            Public
+                        </span>
+                    </div>
                     <div class="flex flex-wrap gap-2 items-center">
                         <span v-for="tag in deck.tags" :key="tag" class="tag tag-primary">
                             {{ tag }}
                         </span>
-                        <!-- Language Selector -->
-                        <select :value="deck.language || ''" @change="handleLanguageChange"
+                        <!-- Language Selector (owner only) -->
+                        <select v-if="isOwner" :value="deck.language || ''" @change="handleLanguageChange"
                             class="ml-2 px-3 py-1 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                             title="Reference language">
                             <option value="">No language</option>
@@ -217,11 +260,30 @@ const handleLanguageChange = async (event: Event): Promise<void> => {
                                 {{ lang.name }}
                             </option>
                         </select>
+                        <span v-else-if="deck.language"
+                            class="tag bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                            🌐 {{availableLanguages.find(l => l.code === deck?.language)?.name || deck?.language}}
+                        </span>
+
+                        <!-- Visibility Toggle (owner only) -->
+                        <button v-if="isOwner" @click="handleVisibilityToggle"
+                            class="ml-2 px-3 py-1 text-sm rounded-lg border transition-colors" :class="deck.isPublic
+                                ? 'bg-purple-100 border-purple-300 text-purple-700 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300'
+                                : 'bg-secondary border-border text-muted-foreground hover:bg-accent'"
+                            :title="deck.isPublic ? 'Click to make private' : 'Click to share publicly'">
+                            {{ deck.isPublic ? '🌐 Public' : '🔒 Private' }}
+                        </button>
                     </div>
                 </div>
-                <button @click="$router.back()" class="btn btn-secondary">
-                    Back to List
-                </button>
+                <div class="flex gap-2">
+                    <!-- Clone button (non-owners) -->
+                    <button v-if="!isOwner" @click="handleClone" class="btn btn-primary">
+                        Clone to Study
+                    </button>
+                    <button @click="$router.back()" class="btn btn-secondary">
+                        Back to List
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -230,11 +292,12 @@ const handleLanguageChange = async (event: Event): Promise<void> => {
                     <h2 class="text-2xl font-semibold mb-4 text-foreground">Lexemes ({{ deck.lexemes.length }})</h2>
                     <div class="max-h-[500px] overflow-y-auto flex flex-col gap-3">
                         <div v-for="(lexeme, index) in deck.lexemes" :key="index"
-                            class="bg-secondary p-4 rounded-lg grid grid-cols-[1fr_2fr_auto_auto] gap-4 items-center">
+                            class="bg-secondary p-4 rounded-lg grid gap-4 items-center"
+                            :class="isOwner ? 'grid-cols-[1fr_2fr_auto_auto]' : 'grid-cols-[1fr_2fr_auto]'">
                             <div class="font-semibold text-foreground">{{ lexeme.term }}</div>
                             <div class="text-muted-foreground">{{ lexeme.meaning }}</div>
                             <div class="bg-border px-3 py-1 rounded-full text-sm">{{ lexeme.POS }}</div>
-                            <button @click="handleRemoveLexeme(lexeme.term)"
+                            <button v-if="isOwner" @click="handleRemoveLexeme(lexeme.term)"
                                 class="text-destructive text-2xl cursor-pointer p-1 rounded hover:bg-destructive/10 transition-all"
                                 title="Remove word" :disabled="hasPendingChanges">
                                 ×
@@ -298,8 +361,8 @@ const handleLanguageChange = async (event: Event): Promise<void> => {
                     </div>
                 </div>
 
-                <!-- Edit Deck (only show when no pending changes) -->
-                <div v-if="!hasPendingChanges" class="card">
+                <!-- Edit Deck (only show when no pending changes and user is owner) -->
+                <div v-if="!hasPendingChanges && isOwner" class="card">
                     <h2 class="text-2xl font-semibold mb-4 text-foreground">Edit Deck with AI</h2>
                     <p class="text-muted-foreground text-sm mb-4 leading-relaxed">
                         Tell the AI how to modify your deck. Examples:<br />
@@ -354,16 +417,27 @@ const handleLanguageChange = async (event: Event): Promise<void> => {
                     </label>
                 </div>
 
-                <!-- Study Button -->
+                <!-- Study Button (owner only) or Clone prompt -->
                 <div class="p-6 bg-secondary rounded-lg">
-                    <p class="text-muted-foreground text-sm mb-4">
-                        📚 Cards are selected using spaced repetition. Difficult words appear more often, mastered words
-                        less frequently.
-                    </p>
-                    <button @click="studyWithSRS" class="btn btn-primary px-8 py-4 text-lg"
-                        :disabled="generatingFlashcards">
-                        {{ generatingFlashcards ? 'Generating...' : 'Start Studying' }}
-                    </button>
+                    <div v-if="isOwner">
+                        <p class="text-muted-foreground text-sm mb-4">
+                            📚 Cards are selected using spaced repetition. Difficult words appear more often, mastered
+                            words
+                            less frequently.
+                        </p>
+                        <button @click="studyWithSRS" class="btn btn-primary px-8 py-4 text-lg"
+                            :disabled="generatingFlashcards">
+                            {{ generatingFlashcards ? 'Generating...' : 'Start Studying' }}
+                        </button>
+                    </div>
+                    <div v-else class="text-center">
+                        <p class="text-muted-foreground mb-4">
+                            🔒 Clone this deck to study with your own progress tracking
+                        </p>
+                        <button @click="handleClone" class="btn btn-primary px-8 py-4 text-lg">
+                            Clone Deck to Study
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

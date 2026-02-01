@@ -203,6 +203,40 @@ export const useDeckStore = defineStore('deck', () => {
         }
     }
 
+    // Clone a deck (for public decks)
+    const cloneDeck = async (deckId: string): Promise<Deck> => {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await api.post<Deck>(`/decks/${deckId}/clone`)
+            decks.value.unshift(response.data)
+            return response.data
+        } catch (e: any) {
+            error.value = e.message
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    // Toggle deck visibility (public/private)
+    const toggleVisibility = async (deckId: string, isPublic: boolean): Promise<Deck> => {
+        try {
+            const response = await api.put<Deck>(`/decks/${deckId}`, { isPublic })
+            const index = decks.value.findIndex((d: Deck) => d._id === deckId)
+            if (index !== -1) {
+                decks.value[index] = response.data
+            }
+            if (currentDeck.value?._id === deckId) {
+                currentDeck.value = response.data
+            }
+            return response.data
+        } catch (e: any) {
+            error.value = e.message
+            throw e
+        }
+    }
+
     return {
         decks,
         currentDeck,
@@ -218,6 +252,8 @@ export const useDeckStore = defineStore('deck', () => {
         removeLexeme,
         extractTextFromImage,
         fetchDueLexemes,
-        rateLexeme
+        rateLexeme,
+        cloneDeck,
+        toggleVisibility
     }
 })
