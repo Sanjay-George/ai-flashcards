@@ -3,6 +3,7 @@ import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import DeckList from '../views/DeckList.vue'
 import CreateDeck from '../views/CreateDeck.vue'
+import EditGeneratedDeck from '../views/EditGeneratedDeck.vue'
 import DeckDetail from '../views/DeckDetail.vue'
 import StudySession from '../views/StudySession.vue'
 
@@ -27,6 +28,12 @@ const routes: RouteRecordRaw[] = [
         path: '/create',
         name: 'CreateDeck',
         component: CreateDeck,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/edit-generated-deck',
+        name: 'EditGeneratedDeck',
+        component: EditGeneratedDeck,
         meta: { requiresAuth: true }
     },
     {

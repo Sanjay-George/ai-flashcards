@@ -27,6 +27,13 @@ const pendingAdditions = ref<Lexeme[]>([])
 const pendingRemovals = ref<Lexeme[]>([])
 const originalLexemes = ref<Lexeme[]>([])
 
+// Message history for AI context (optional for existing decks)
+interface ChatMessage {
+    role: 'user' | 'assistant'
+    content: string
+}
+const messageHistory = ref<ChatMessage[]>([])
+
 // Ownership check
 const isOwner = computed(() => deck.value?.userId === authStore.userId)
 
@@ -43,13 +50,20 @@ const handleEdit = async (): Promise<void> => {
     editError.value = ''
 
     try {
+        // Add user message to history
+        messageHistory.value.push({
+            role: 'user',
+            content: editInstruction.value
+        })
+
         const result = await deckStore.editDeckWithAI(
             {
                 title: deck.value.title,
                 tags: deck.value.tags,
                 lexemes: deck.value.lexemes
             },
-            editInstruction.value
+            editInstruction.value,
+            messageHistory.value
         )
 
         // Store original state and set pending changes
@@ -59,21 +73,35 @@ const handleEdit = async (): Promise<void> => {
         if (result.action === 'add') {
             pendingAdditions.value = result.updated_lexemes
             pendingRemovals.value = []
+            messageHistory.value.push({
+                role: 'assistant',
+                content: `Adding ${result.updated_lexemes.length} new lexeme(s).`
+            })
         } else if (result.action === 'remove') {
             const termsToRemove = result.updated_lexemes.map((l: Lexeme) => l.term)
             pendingRemovals.value = deck.value.lexemes.filter((l: Lexeme) => termsToRemove.includes(l.term))
             pendingAdditions.value = []
+            messageHistory.value.push({
+                role: 'assistant',
+                content: `Removing ${pendingRemovals.value.length} lexeme(s).`
+            })
         } else if (result.action === 'edit') {
             // For edits, show old as removal and new as addition
             const editedTerms = result.updated_lexemes.map((l: Lexeme) => l.term)
             pendingRemovals.value = deck.value.lexemes.filter((l: Lexeme) => editedTerms.includes(l.term))
             pendingAdditions.value = result.updated_lexemes
+            messageHistory.value.push({
+                role: 'assistant',
+                content: `Editing ${result.updated_lexemes.length} lexeme(s).`
+            })
         }
 
         hasPendingChanges.value = true
         editInstruction.value = ''
     } catch (e: any) {
         editError.value = e.message || 'Failed to edit deck'
+        // Remove the user message if there was an error
+        messageHistory.value.pop()
     } finally {
         isEditing.value = false
     }
@@ -106,6 +134,10 @@ const commitChanges = async (): Promise<void> => {
 
 const undoChanges = (): void => {
     clearPendingChanges()
+    // Remove last two messages (user instruction and assistant response)
+    if (messageHistory.value.length >= 2) {
+        messageHistory.value.splice(-2)
+    }
 }
 
 const clearPendingChanges = (): void => {

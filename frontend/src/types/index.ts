@@ -58,6 +58,11 @@ export interface CreateDeckResponse {
     lexemes: Lexeme[];
 }
 
+export interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
 export interface EditDeckRequest {
     deck_json: {
         title: string;
@@ -65,6 +70,7 @@ export interface EditDeckRequest {
         lexemes: Lexeme[];
     };
     instruction: string;
+    message_history?: ChatMessage[];
 }
 
 export interface EditDeckResponse {

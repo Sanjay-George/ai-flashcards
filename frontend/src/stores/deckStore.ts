@@ -5,7 +5,8 @@ import type {
     Deck,
     Lexeme,
     CreateDeckResponse,
-    EditDeckResponse
+    EditDeckResponse,
+    ChatMessage
 } from '../types/index'
 
 export { Deck, Lexeme }
@@ -118,13 +119,18 @@ export const useDeckStore = defineStore('deck', () => {
     }
 
     // AI: Edit deck
-    const editDeckWithAI = async (deckJson: any, instruction: string): Promise<EditDeckResponse> => {
+    const editDeckWithAI = async (
+        deckJson: any, 
+        instruction: string, 
+        messageHistory?: ChatMessage[]
+    ): Promise<EditDeckResponse> => {
         loading.value = true
         error.value = null
         try {
             const response = await aiApi.post<EditDeckResponse>('/edit_deck', {
                 deck_json: deckJson,
-                instruction
+                instruction,
+                message_history: messageHistory
             })
             return response.data
         } catch (e: any) {

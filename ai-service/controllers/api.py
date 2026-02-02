@@ -86,6 +86,7 @@ async def edit_deck(request: DeckEditRequest):
 Input:
 - Current deck JSON
 - User instruction
+- Optional conversation history for context
 
 Field definitions:
 - "term": The word/phrase in the TARGET language being learned (e.g., German, Spanish). This is what the student is trying to learn.
@@ -96,6 +97,7 @@ Task:
 - Interpret the instruction to add, edit, or remove lexemes.
 - When modifying terms (e.g., adding articles to German nouns), update the "term" field, NOT the "meaning" field.
 - The "meaning" field should always remain in English.
+- Use the conversation history to understand context and follow-up requests.
 - Examples:
   * Adding German article: term "Zimmer" → term "das Zimmer", meaning stays "room"
   * Adding Spanish article: term "casa" → term "la casa", meaning stays "house"
@@ -110,9 +112,19 @@ Output JSON:
 
 Respond ONLY with valid JSON, no additional text."""
 
+        # Build user content with message history context
         user_content = f"""Current deck: {json.dumps(request.deck_json)}
 
-User instruction: {request.instruction}"""
+"""
+        
+        # Add conversation history if provided
+        if request.message_history and len(request.message_history) > 0:
+            user_content += "Previous conversation:\n"
+            for msg in request.message_history:
+                user_content += f"{msg.role}: {msg.content}\n"
+            user_content += "\n"
+        
+        user_content += f"User instruction: {request.instruction}"
 
         response = await ai_client.generate(system_prompt, user_content)
         result = json.loads(response)

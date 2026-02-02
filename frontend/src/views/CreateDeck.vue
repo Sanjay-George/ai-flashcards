@@ -11,7 +11,6 @@ const userMessage = ref<string>('')
 const extractedText = ref<string>('')
 const uploadedImage = ref<File | null>(null)
 const isExtractingText = ref<boolean>(false)
-const generatedDeck = ref<CreateDeckResponse | null>(null)
 const isGenerating = ref<boolean>(false)
 const error = ref<string>('')
 
@@ -57,7 +56,15 @@ const generateDeck = async () => {
             userMessage.value,
             extractedText.value || undefined
         )
-        generatedDeck.value = result
+        
+        // Navigate to edit page with the generated deck
+        router.push({
+            name: 'EditGeneratedDeck',
+            state: {
+                generatedDeck: result,
+                initialMessage: userMessage.value + (extractedText.value ? '\n\nExtracted text: ' + extractedText.value : '')
+            }
+        })
     } catch (e: any) {
         error.value = e.message || 'Failed to generate deck'
     } finally {
@@ -66,21 +73,13 @@ const generateDeck = async () => {
 }
 
 const saveDeck = async () => {
-    if (!generatedDeck.value) return
-
-    try {
-        const deck = await deckStore.createDeck(generatedDeck.value)
-        router.push(`/deck/${deck._id}`)
-    } catch (e: any) {
-        error.value = e.message || 'Failed to save deck'
-    }
+    // No longer needed - deck is saved from EditGeneratedDeck page
 }
 
 const resetForm = () => {
     userMessage.value = ''
     extractedText.value = ''
     uploadedImage.value = null
-    generatedDeck.value = null
     error.value = ''
 }
 
@@ -153,9 +152,14 @@ const getLanguageName = (code: string): string => {
                         rows="4" :disabled="isGenerating"></textarea>
                 </div>
 
-                <button @click="generateDeck" class="btn btn-primary" :disabled="isGenerating || !userMessage.trim()">
-                    {{ isGenerating ? 'Generating...' : 'Generate Deck with AI' }}
-                </button>
+                <div class="flex gap-4">
+                    <button @click="generateDeck" class="btn btn-primary" :disabled="isGenerating || !userMessage.trim()">
+                        {{ isGenerating ? 'Generating...' : '✨ Generate Deck with AI' }}
+                    </button>
+                    <button v-if="userMessage || uploadedImage" @click="resetForm" class="btn btn-secondary">
+                        🔄 Reset
+                    </button>
+                </div>
 
                 <div v-if="error" class="bg-destructive/10 text-destructive p-4 rounded-lg mt-4">
                     {{ error }}
@@ -165,52 +169,6 @@ const getLanguageName = (code: string): string => {
             <div v-if="isGenerating" class="loading mt-8">
                 <div class="spinner"></div>
                 <p class="mt-4">AI is creating your deck...</p>
-            </div>
-
-            <div v-if="generatedDeck" class="mt-8 pt-8 border-t border-border">
-                <h2 class="text-2xl font-semibold mb-4 text-foreground">Step 2: Review Generated Deck</h2>
-
-                <div class="bg-secondary p-6 rounded-lg">
-                    <div class="form-group">
-                        <label>Deck Title</label>
-                        <input v-model="generatedDeck.title" class="form-control" type="text" />
-                    </div>
-
-                    <div class="form-group">
-                        <label>Tags</label>
-                        <div class="flex flex-wrap gap-2 items-center">
-                            <span v-for="(tag, index) in generatedDeck.tags" :key="index" class="tag tag-primary">
-                                {{ tag }}
-                            </span>
-                            <span v-if="generatedDeck.language"
-                                class="tag bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                                🌐 {{ getLanguageName(generatedDeck.language) }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Lexemes ({{ generatedDeck.lexemes.length }})</label>
-                        <div class="max-h-96 overflow-y-auto flex flex-col gap-4">
-                            <div v-for="(lexeme, index) in generatedDeck.lexemes" :key="index"
-                                class="bg-card p-4 rounded-lg grid grid-cols-[1fr_2fr_auto] gap-4 items-center">
-                                <div class="font-semibold text-foreground text-lg">{{ lexeme.term }}</div>
-                                <div class="text-muted-foreground">{{ lexeme.meaning }}</div>
-                                <div class="bg-secondary px-3 py-1 rounded-full text-sm text-secondary-foreground">{{
-                                    lexeme.POS }}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4 mt-6">
-                        <button @click="saveDeck" class="btn btn-primary">
-                            Save Deck
-                        </button>
-                        <button @click="resetForm" class="btn btn-secondary">
-                            Start Over
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
