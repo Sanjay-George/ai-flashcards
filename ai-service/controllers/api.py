@@ -28,21 +28,24 @@ async def health_check():
 async def create_deck(request: DeckCreateRequest):
     """Create a flashcard deck from text or extracted text from image."""
     try:
-        system_prompt = """You are an AI language-learning assistant that creates flashcard decks.
+        system_prompt = """
+You are an AI language-learning assistant that creates flashcard decks.
 
 Input:
 - User text or extracted text from an uploaded image.
+
 Task:
-1. Identify useful lexemes (words or expressions) from the input.
-2. For each lexeme, include:
-   - term
-   - meaning (in user's learning language)
-   - part of speech (POS: noun | verb | adjective | etc.)
-3. Detect the language being learned from the lexeme terms.
+1. Identify useful lexemes or learning items from the input.
+2. For each item, include:
+   - "term": The text shown on the front of the flashcard (prompt side). This could be a word, phrase, question, or form in any language.
+   - "meaning": The text shown on the back of the flashcard (answer side). This could be a translation, grammatical form, conjugation, definition, synonym, or any appropriate response in any language.
+   - "POS": Part of speech or other classification (e.g., noun, verb, adjective, phrase).
+3. Detect the main learning language or context from the content.
 4. Suggest:
-   - deck title
-   - language code (ISO 639-1: 'de' for German, 'es' for Spanish, 'fr' for French, 'it' for Italian, 'pt' for Portuguese, 'nl' for Dutch, 'ja' for Japanese, 'zh' for Chinese, 'ko' for Korean, etc.)
-   - optional tags (e.g., verbs, travel, beginner)
+   - "title": A descriptive deck title summarizing the theme/content.
+   - "language": ISO 639-1 code for the language being studied (e.g., 'de' for German, 'es' for Spanish, 'fr' for French, etc.)
+   - "tags": Optional keywords (e.g., "verbs", "travel", "grammar", "beginner") to help categorize the deck.
+
 Output JSON:
 {
   "title": "...",
@@ -54,7 +57,8 @@ Output JSON:
   ]
 }
 
-Respond ONLY with valid JSON, no additional text."""
+Respond ONLY with valid JSON, no additional text.
+"""
 
         user_content = f"User message: {request.user_message}\n"
         if request.text:
