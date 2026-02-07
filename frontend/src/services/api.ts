@@ -32,6 +32,22 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 )
 
+// Request interceptor for AI API to add auth token
+aiApi.interceptors.request.use(
+    async (config: InternalAxiosRequestConfig) => {
+        // Dynamically import to avoid circular dependencies
+        const { useAuthStore } = await import('../stores/authStore')
+        const authStore = useAuthStore()
+
+        const token = await authStore.getToken()
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`
+        }
+        return config
+    },
+    (error) => Promise.reject(error)
+)
+
 // Response interceptor for error handling
 api.interceptors.response.use(
     response => response,
@@ -51,6 +67,12 @@ aiApi.interceptors.response.use(
     response => response,
     (error: AxiosError) => {
         console.error('AI API Error:', error.response?.data || error.message)
+
+        // Handle 401 unauthorized - redirect to login
+        if (error.response?.status === 401) {
+            window.location.href = '/login'
+        }
+
         return Promise.reject(error)
     }
 )

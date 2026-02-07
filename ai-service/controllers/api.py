@@ -1,9 +1,10 @@
 """API routes for AI service"""
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 import json
 
 from services.ai_client import AIClient
 from services.ocr_service import OCRService
+from middleware.auth import verify_firebase_token
 from models import (
     DeckCreateRequest, DeckCreateResponse,
     DeckEditRequest, DeckEditResponse,
@@ -25,7 +26,7 @@ async def health_check():
 
 
 @router.post("/ai/create_deck", response_model=DeckCreateResponse)
-async def create_deck(request: DeckCreateRequest):
+async def create_deck(request: DeckCreateRequest, user=Depends(verify_firebase_token)):
     """Create a flashcard deck from text or extracted text from image."""
     try:
         system_prompt = """
@@ -78,7 +79,7 @@ Respond ONLY with valid JSON, no additional text.
 
 
 @router.post("/ai/edit_deck", response_model=DeckEditResponse)
-async def edit_deck(request: DeckEditRequest):
+async def edit_deck(request: DeckEditRequest, user=Depends(verify_firebase_token)):
     """Modify an existing deck based on user instructions."""
     try:
         system_prompt = """You are assisting a user in refining their flashcard deck.
@@ -116,14 +117,14 @@ Respond ONLY with valid JSON, no additional text."""
         user_content = f"""Current deck: {json.dumps(request.deck_json)}
 
 """
-        
+
         # Add conversation history if provided
         if request.message_history and len(request.message_history) > 0:
             user_content += "Previous conversation:\n"
             for msg in request.message_history:
                 user_content += f"{msg.role}: {msg.content}\n"
             user_content += "\n"
-        
+
         user_content += f"User instruction: {request.instruction}"
 
         response = await ai_client.generate(system_prompt, user_content)
@@ -138,7 +139,7 @@ Respond ONLY with valid JSON, no additional text."""
 
 
 @router.post("/ai/generate_flashcards", response_model=FlashcardGenerateResponse)
-async def generate_flashcards(request: FlashcardGenerateRequest):
+async def generate_flashcards(request: FlashcardGenerateRequest, user=Depends(verify_firebase_token)):
     """Generate flashcards from a deck."""
     try:
         system_prompt = """You are an AI flashcard generator for language learning.
@@ -208,7 +209,7 @@ Mode: {request.mode}"""
 
 
 @router.post("/ai/update_progress", response_model=ProgressUpdateResponse)
-async def update_progress(request: ProgressUpdateRequest):
+async def update_progress(request: ProgressUpdateRequest, user=Depends(verify_firebase_token)):
     """Update learner progress based on flashcard ratings."""
     try:
         system_prompt = """You are tracking language learning progress.
@@ -247,7 +248,7 @@ Deck context: {json.dumps(request.deck_json)}"""
 
 
 @router.post("/ai/extract_text")
-async def extract_text_from_image(file: UploadFile = File(...)):
+async def extract_text_from_image(file: UploadFile = File(...), user=Depends(verify_firebase_token)):
     """Extract text from an uploaded image using OCR."""
     try:
         contents = await file.read()
@@ -258,7 +259,7 @@ async def extract_text_from_image(file: UploadFile = File(...)):
 
 
 @router.post("/ai/chat", response_model=ChatResponse)
-async def chat_about_flashcard(request: ChatRequest):
+async def chat_about_flashcard(request: ChatRequest, user=Depends(verify_firebase_token)):
     """Answer user questions about a flashcard."""
     try:
         system_prompt = """You are a helpful language tutor. Answer the user's question about a flashcard.
