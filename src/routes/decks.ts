@@ -104,8 +104,6 @@ app.get('/', optionalAuthMiddleware, async (c) => {
     try {
         const user = c.get('user') as AuthUser | null;
 
-        console.log('Fetching decks for user:', user?.email || 'Guest');
-
         let query: any;
         if (user) {
             // Authenticated: show user's decks + public decks

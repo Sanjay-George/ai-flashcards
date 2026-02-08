@@ -1,8 +1,10 @@
 import type { Context, Next } from 'hono';
 import admin from 'firebase-admin';
 import fs from 'fs';
+import { getAuth } from 'firebase-admin/auth';
 
 // Initialize Firebase Admin SDK
+console.log(admin.apps);
 if (!admin.apps.length) {
     // Option 1: Use service account JSON file path from env
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
@@ -12,8 +14,11 @@ if (!admin.apps.length) {
 
     if (serviceAccountPath) {
         // Read and parse the service account JSON file instead of using require with a dynamic path
-        const serviceAccountJson = fs.readFileSync(serviceAccountPath, 'utf8');
-        const serviceAccount = JSON.parse(serviceAccountJson);
+        // const serviceAccountJson = fs.readFileSync(serviceAccountPath, 'utf8');
+        // const serviceAccount = JSON.parse(serviceAccountJson);
+
+        const serviceAccount = require(serviceAccountPath);
+        console.log(serviceAccount);
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
@@ -30,10 +35,24 @@ if (!admin.apps.length) {
     }
 }
 
+
 export interface AuthUser {
     uid: string;
     email?: string;
     name?: string;
+}
+
+/**
+ * Wraps verifyIdToken with a timeout to prevent requests from hanging
+ * when Firebase/Google servers are slow or unreachable.
+ */
+function verifyTokenWithTimeout(token: string, timeoutMs = 5000) {
+    return Promise.race([
+        getAuth().verifyIdToken(token),
+        new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Firebase token verification timed out')), timeoutMs)
+        )
+    ]);
 }
 
 /**
@@ -54,7 +73,7 @@ export const authMiddleware = async (c: Context, next: Next) => {
             return c.json({ error: 'Unauthorized - Firebase not configured' }, 401);
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(token);
+        const decodedToken = await verifyTokenWithTimeout(token);
 
         const user: AuthUser = {
             uid: decodedToken.uid,
@@ -65,7 +84,11 @@ export const authMiddleware = async (c: Context, next: Next) => {
         c.set('user', user);
         await next();
     } catch (error: unknown) {
-        console.error('Auth error:', (error as Error).message);
+        const message = (error as Error).message;
+        console.error('Auth error:', message);
+        if (message.includes('timed out')) {
+            return c.json({ error: 'Authentication service temporarily unavailable' }, 503);
+        }
         return c.json({ error: 'Unauthorized - Invalid token' }, 401);
     }
 };
@@ -93,7 +116,7 @@ export const optionalAuthMiddleware = async (c: Context, next: Next) => {
             return;
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(token);
+        const decodedToken = await verifyTokenWithTimeout(token);
 
         c.set('user', {
             uid: decodedToken.uid,
@@ -101,6 +124,7 @@ export const optionalAuthMiddleware = async (c: Context, next: Next) => {
             name: decodedToken.name
         });
     } catch (error) {
+        console.warn('Optional auth failed:', (error as Error).message);
         c.set('user', null);
     }
 
