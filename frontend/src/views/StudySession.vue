@@ -187,15 +187,17 @@ const askFlashcardQuestion = async (): Promise<void> => {
             <p class="mt-4">Loading flashcards...</p>
         </div>
 
-        <div v-else-if="sessionComplete" class="card text-center py-12 px-8 max-w-xl mx-auto mt-8">
-            <div class="text-7xl mb-4">🎉</div>
-            <h1 class="text-3xl font-bold text-foreground mb-2">Session Complete!</h1>
-            <p class="text-muted-foreground mb-6">You've reviewed all {{ flashcards.length }} flashcards</p>
+        <div v-else-if="sessionComplete"
+            class="card text-center py-8 sm:py-12 px-4 sm:px-8 max-w-xl mx-auto mt-4 sm:mt-8">
+            <div class="text-5xl sm:text-7xl mb-4">🎉</div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-foreground mb-2">Session Complete!</h1>
+            <p class="text-muted-foreground mb-4 sm:mb-6">You've reviewed all {{ flashcards.length }} flashcards</p>
 
             <!-- XP Earned -->
             <div v-if="sessionResult" class="mb-8">
                 <!-- Level up celebration -->
-                <div v-if="sessionResult.leveledUp" class="mb-6 p-4 bg-linear-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl border border-yellow-300 dark:border-yellow-700">
+                <div v-if="sessionResult.leveledUp"
+                    class="mb-6 p-4 bg-linear-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl border border-yellow-300 dark:border-yellow-700">
                     <div class="text-4xl mb-2">🏆</div>
                     <p class="text-lg font-bold text-yellow-700 dark:text-yellow-400">Level Up!</p>
                     <p class="text-2xl font-bold text-foreground">
@@ -204,17 +206,18 @@ const askFlashcardQuestion = async (): Promise<void> => {
                     <p class="text-sm text-muted-foreground mt-1">{{ sessionResult.currentMilestone.description }}</p>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="p-3 bg-secondary rounded-lg">
-                        <div class="text-2xl font-bold text-primary">+{{ sessionResult.xpEarned }}</div>
+                <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+                    <div class="p-2 sm:p-3 bg-secondary rounded-lg">
+                        <div class="text-lg sm:text-2xl font-bold text-primary">+{{ sessionResult.xpEarned }}</div>
                         <div class="text-xs text-muted-foreground">XP Earned</div>
                     </div>
-                    <div class="p-3 bg-secondary rounded-lg">
-                        <div class="text-2xl font-bold text-foreground">{{ sessionResult.totalXP }}</div>
+                    <div class="p-2 sm:p-3 bg-secondary rounded-lg">
+                        <div class="text-lg sm:text-2xl font-bold text-foreground">{{ sessionResult.totalXP }}</div>
                         <div class="text-xs text-muted-foreground">Total XP</div>
                     </div>
-                    <div class="p-3 bg-secondary rounded-lg">
-                        <div class="text-2xl font-bold text-foreground">🔥 {{ sessionResult.currentStreak }}</div>
+                    <div class="p-2 sm:p-3 bg-secondary rounded-lg">
+                        <div class="text-lg sm:text-2xl font-bold text-foreground">🔥 {{ sessionResult.currentStreak }}
+                        </div>
                         <div class="text-xs text-muted-foreground">Day Streak</div>
                     </div>
                 </div>
@@ -231,7 +234,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
                         </span>
                     </div>
                     <div class="w-full h-2.5 bg-border rounded-full overflow-hidden">
-                        <div class="h-full bg-linear-to-r from-primary to-purple-600 transition-all duration-700 rounded-full"
+                        <div class="h-full bg-linear-to-r from-primary to-primary-gradient-end transition-all duration-700 rounded-full"
                             :style="{ width: Math.round(((sessionResult.totalXP - sessionResult.currentMilestone.xpRequired) / (sessionResult.nextMilestone.xpRequired - sessionResult.currentMilestone.xpRequired)) * 100) + '%' }">
                         </div>
                     </div>
@@ -240,34 +243,35 @@ const askFlashcardQuestion = async (): Promise<void> => {
                     </p>
                 </div>
                 <div v-else class="text-sm text-muted-foreground">
-                    {{ sessionResult.currentMilestone.emoji }} Max level reached! You're a {{ sessionResult.currentMilestone.title }}!
+                    {{ sessionResult.currentMilestone.emoji }} Max level reached! You're a {{
+                        sessionResult.currentMilestone.title }}!
                 </div>
             </div>
 
-            <div class="flex justify-center gap-4">
-                <button @click="restartSession" class="btn btn-primary">
+            <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+                <button @click="restartSession" class="btn btn-primary w-full sm:w-auto">
                     Study Again
                 </button>
-                <button @click="goToDeck" class="btn btn-secondary">
+                <button @click="goToDeck" class="btn btn-secondary w-full sm:w-auto">
                     Back to Deck
                 </button>
             </div>
         </div>
 
         <div v-else-if="currentCard">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-foreground">{{ deck?.title }}</h2>
-                <button @click="goToDeck" class="btn btn-secondary">Exit</button>
+            <div class="flex justify-between items-center mb-4 sm:mb-6">
+                <h2 class="text-lg sm:text-2xl font-semibold text-foreground truncate mr-2">{{ deck?.title }}</h2>
+                <button @click="goToDeck" class="btn btn-secondary text-sm shrink-0">Exit</button>
             </div>
 
             <!-- Progress bar -->
             <div class="w-full h-2 bg-border rounded-full overflow-hidden mb-2">
-                <div class="h-full bg-linear-to-r from-primary to-purple-600 transition-all duration-300"
+                <div class="h-full bg-linear-to-r from-primary to-primary-gradient-end transition-all duration-300"
                     :style="{ width: progress + '%' }"></div>
             </div>
 
             <!-- Card counter and navigation -->
-            <div class="flex justify-center items-center gap-4 mb-8">
+            <div class="flex justify-center items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                 <button @click="goToPrevious" :disabled="!canGoBack"
                     class="p-2 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary"
                     title="Previous card">
@@ -292,24 +296,30 @@ const askFlashcardQuestion = async (): Promise<void> => {
             </div>
 
             <!-- Flashcard -->
-            <div class="perspective-[1000px] mb-8 cursor-pointer" @click="flipCard">
-                <div class="relative w-full min-h-100 transition-transform duration-600 transform-style-preserve-3d"
+            <div class="perspective-[1000px] mb-6 sm:mb-8 cursor-pointer" @click="flipCard">
+                <div class="relative w-full min-h-64 sm:min-h-80 lg:min-h-100 transition-transform duration-600 transform-style-preserve-3d"
                     :class="{ 'rotate-y-180': showAnswer }">
                     <!-- Front -->
                     <div
-                        class="absolute w-full min-h-100 backface-hidden flex flex-col items-center justify-center p-12 bg-card rounded-xl border border-border shadow-lg">
-                        <div class="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-6">Question
+                        class="absolute w-full min-h-64 sm:min-h-80 lg:min-h-100 backface-hidden flex flex-col items-center justify-center p-6 sm:p-10 lg:p-12 bg-card rounded-xl border border-border shadow-lg">
+                        <div
+                            class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4 sm:mb-6">
+                            Question
                         </div>
-                        <div class="text-3xl font-semibold text-center text-foreground leading-relaxed">{{
-                            currentCard.question }}</div>
-                        <div class="mt-8 text-sm text-muted-foreground italic">Click to reveal answer</div>
+                        <div
+                            class="text-xl sm:text-2xl lg:text-3xl font-semibold text-center text-foreground leading-relaxed">
+                            {{ currentCard.question }}</div>
+                        <div class="mt-6 sm:mt-8 text-xs sm:text-sm text-muted-foreground italic">Tap to reveal answer
+                        </div>
                     </div>
 
                     <!-- Back -->
                     <div
-                        class="absolute w-full min-h-100 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary to-purple-600 text-white rounded-xl shadow-lg">
-                        <div class="text-sm font-semibold uppercase tracking-wide opacity-80 mb-6">Answer</div>
-                        <div class="text-3xl font-semibold text-center leading-relaxed">{{ currentCard.answer }}</div>
+                        class="absolute w-full min-h-64 sm:min-h-80 lg:min-h-100 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-6 sm:p-10 lg:p-12 bg-linear-to-br from-primary to-primary-gradient-end text-white rounded-xl shadow-lg">
+                        <div class="text-xs sm:text-sm font-semibold uppercase tracking-wide opacity-80 mb-4 sm:mb-6">
+                            Answer</div>
+                        <div class="text-xl sm:text-2xl lg:text-3xl font-semibold text-center leading-relaxed">{{
+                            currentCard.answer }}</div>
 
                         <!-- Reference Link -->
                         <div v-if="referenceUrl" class="mt-6">
@@ -343,38 +353,40 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
                 <!-- When rating a new card -->
                 <div v-else>
-                    <p class="text-lg font-semibold text-foreground mb-4">How well did you know this?</p>
-                    <div class="flex justify-center gap-3 flex-wrap">
+                    <p class="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">How well did you know
+                        this?</p>
+                    <div class="grid grid-cols-3 sm:flex sm:justify-center gap-2 sm:gap-3">
                         <button @click="rateCard(1)"
-                            class="btn px-5 py-3 bg-red-400 text-white hover:bg-red-500 hover:-translate-y-0.5 transition-all">
+                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-red-400 text-white hover:bg-red-500 active:scale-95 transition-all text-xs sm:text-sm">
                             😞 Not at all
                         </button>
                         <button @click="rateCard(2)"
-                            class="btn px-5 py-3 bg-orange-400 text-white hover:bg-orange-500 hover:-translate-y-0.5 transition-all">
+                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-orange-400 text-white hover:bg-orange-500 active:scale-95 transition-all text-xs sm:text-sm">
                             😐 Hard
                         </button>
                         <button @click="rateCard(3)"
-                            class="btn px-5 py-3 bg-green-400 text-white hover:bg-green-500 hover:-translate-y-0.5 transition-all">
+                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-green-400 text-white hover:bg-green-500 active:scale-95 transition-all text-xs sm:text-sm">
                             🙂 Good
                         </button>
                         <button @click="rateCard(4)"
-                            class="btn px-5 py-3 bg-teal-400 text-white hover:bg-teal-500 hover:-translate-y-0.5 transition-all">
+                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-teal-400 text-white hover:bg-teal-500 active:scale-95 transition-all text-xs sm:text-sm">
                             😊 Easy
                         </button>
                         <button @click="rateCard(5)"
-                            class="btn px-5 py-3 bg-primary text-white hover:bg-primary/90 hover:-translate-y-0.5 transition-all">
+                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all text-xs sm:text-sm">
                             🎯 Perfect
                         </button>
                     </div>
                 </div>
 
                 <!-- Chat Section -->
-                <div class="mt-6 text-left bg-secondary p-4 rounded-lg">
-                    <p class="font-semibold text-foreground mb-3">Ask a question about this card</p>
+                <div class="mt-4 sm:mt-6 text-left bg-secondary p-3 sm:p-4 rounded-lg">
+                    <p class="font-semibold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">Ask a question about this
+                        card</p>
                     <div class="flex gap-2 items-center">
                         <input v-model="chatInput"
-                            class="flex-1 px-3 py-2.5 border border-input rounded-md text-sm focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10"
-                            type="text" placeholder="e.g., How do I use this in a sentence?" :disabled="chatLoading" />
+                            class="flex-1 px-3 py-2.5 border border-input rounded-lg text-base sm:text-sm focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10"
+                            type="text" placeholder="e.g., How do I use this?" :disabled="chatLoading" />
                         <button @click="askFlashcardQuestion" class="btn btn-secondary"
                             :disabled="chatLoading || !chatInput.trim()">
                             {{ chatLoading ? 'Asking...' : 'Ask' }}
@@ -410,5 +422,22 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
 .duration-600 {
     transition-duration: 600ms;
+}
+
+/* Responsive min-heights for flashcard */
+.min-h-64 {
+    min-height: 16rem;
+}
+
+@media (min-width: 640px) {
+    .sm\:min-h-80 {
+        min-height: 20rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .lg\:min-h-100 {
+        min-height: 25rem;
+    }
 }
 </style>

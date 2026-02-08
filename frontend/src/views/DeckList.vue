@@ -70,12 +70,12 @@ const getMasteryLabel = (percent: number): string => {
 
 <template>
     <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-foreground">Flashcard Decks</h1>
-            <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
+            <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Flashcard Decks</h1>
+            <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary w-full sm:w-auto">
                 + Create New Deck
             </RouterLink>
-            <RouterLink v-else to="/login" class="btn btn-primary">
+            <RouterLink v-else to="/login" class="btn btn-primary w-full sm:w-auto">
                 Sign in to Create
             </RouterLink>
         </div>
@@ -90,9 +90,9 @@ const getMasteryLabel = (percent: number): string => {
         </div>
 
         <div v-else-if="deckStore.decks.length === 0"
-            class="text-center py-16 px-8 bg-card rounded-xl border border-border">
-            <div class="text-7xl mb-4">📚</div>
-            <h2 class="text-2xl font-semibold text-foreground mb-2">No decks yet</h2>
+            class="text-center py-10 sm:py-16 px-4 sm:px-8 bg-card rounded-xl border border-border">
+            <div class="text-5xl sm:text-7xl mb-4">📚</div>
+            <h2 class="text-xl sm:text-2xl font-semibold text-foreground mb-2">No decks yet</h2>
             <p class="text-muted-foreground mb-8">Create your first deck to start learning!</p>
             <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary">
                 Create Deck
@@ -102,11 +102,11 @@ const getMasteryLabel = (percent: number): string => {
             </RouterLink>
         </div>
 
-        <div v-else class="grid-2">
-            <div v-for="deck in deckStore.decks" :key="deck._id" class="card flex flex-col gap-4">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="text-xl font-semibold text-foreground">{{ deck.title }}</h3>
+        <div v-else class="grid-2 overflow-hidden">
+            <div v-for="deck in deckStore.decks" :key="deck._id" class="card flex flex-col gap-3 sm:gap-4 min-w-0 overflow-hidden">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                    <div class="min-w-0">
+                        <h3 class="text-lg sm:text-xl font-semibold text-foreground truncate">{{ deck.title }}</h3>
                         <!-- Ownership & visibility badges -->
                         <div class="flex gap-2 mt-1">
                             <span v-if="isOwner(deck.userId)"
@@ -157,7 +157,7 @@ const getMasteryLabel = (percent: number): string => {
                     <span>Updated: {{ formatDate(deck.updatedAt) }}</span>
                 </div>
 
-                <div class="flex gap-2 mt-auto">
+                <div class="flex flex-col sm:flex-row gap-2 mt-auto">
                     <RouterLink :to="`/deck/${deck._id}`" class="btn btn-secondary flex-1 text-sm py-2">
                         View Details
                     </RouterLink>
