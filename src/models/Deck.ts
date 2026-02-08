@@ -46,9 +46,8 @@ const DeckSchema = new Schema<IDeck>({
     updatedAt: { type: Date, default: Date.now }
 });
 
-DeckSchema.pre('save', function (this: IDeck, next: (err?: Error) => void) {
+DeckSchema.pre<IDeck>('save', function () {
     this.updatedAt = new Date();
-    next();
 });
 
 export const Deck = mongoose.model<IDeck>('Deck', DeckSchema);
