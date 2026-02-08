@@ -1,8 +1,9 @@
-import { Hono } from 'hono';
-import { Flashcard } from '../models/Flashcard';
-import type { IFlashcard, APIError, APISuccessMessage } from '../types/index';
+import { Router } from 'express';
+import type { Request, Response } from 'express';
+import { Flashcard } from '../models/Flashcard.js';
+import type { IFlashcard } from '../types/index.js';
 
-const app = new Hono();
+const router = Router();
 
 /**
  * SM-2 Spaced Repetition Algorithm
@@ -53,20 +54,20 @@ function calculateSRS(
 }
 
 // Get flashcards for a deck
-app.get('/deck/:deckId', async (c) => {
+router.get('/deck/:deckId', async (req: Request, res: Response) => {
     try {
-        const flashcards = await Flashcard.find({ deckId: c.req.param('deckId') });
-        return c.json(flashcards);
+        const flashcards = await Flashcard.find({ deckId: req.params.deckId });
+        res.json(flashcards);
     } catch (error: any) {
-        return c.json({ error: error.message }, 500);
+        res.status(500).json({ error: error.message });
     }
 });
 
 // Get flashcards due for review (spaced repetition)
-app.get('/deck/:deckId/due', async (c) => {
+router.get('/deck/:deckId/due', async (req: Request, res: Response) => {
     try {
-        const deckId = c.req.param('deckId');
-        const limit = parseInt(c.req.query('limit') || '10');
+        const deckId = req.params.deckId;
+        const limit = parseInt(req.query.limit as string || '10');
         const now = new Date();
 
         // Get cards that are due (nextReviewDate <= now), sorted by due date
@@ -90,47 +91,50 @@ app.get('/deck/:deckId/due', async (c) => {
                 .sort({ repetitions: 1, easeFactor: 1 })
                 .limit(remaining);
 
-            return c.json([...dueCards, ...fillCards]);
+            res.json([...dueCards, ...fillCards]);
+            return;
         }
 
-        return c.json(dueCards);
+        res.json(dueCards);
     } catch (error: any) {
-        return c.json({ error: error.message }, 500);
+        res.status(500).json({ error: error.message });
     }
 });
 
 // Get single flashcard
-app.get('/:id', async (c) => {
+router.get('/:id', async (req: Request, res: Response) => {
     try {
-        const flashcard = await Flashcard.findById(c.req.param('id'));
+        const flashcard = await Flashcard.findById(req.params.id);
         if (!flashcard) {
-            return c.json({ error: 'Flashcard not found' }, 404);
+            res.status(404).json({ error: 'Flashcard not found' });
+            return;
         }
-        return c.json(flashcard);
+        res.json(flashcard);
     } catch (error: any) {
-        return c.json({ error: error.message }, 500);
+        res.status(500).json({ error: error.message });
     }
 });
 
 // Create flashcards (bulk)
-app.post('/bulk', async (c) => {
+router.post('/bulk', async (req: Request, res: Response) => {
     try {
-        const body = await c.req.json<{ flashcards: Partial<IFlashcard>[] }>();
+        const body = req.body as { flashcards: Partial<IFlashcard>[] };
         const flashcards = await Flashcard.insertMany(body.flashcards);
-        return c.json(flashcards, 201);
+        res.status(201).json(flashcards);
     } catch (error: any) {
-        return c.json({ error: error.message }, 400);
+        res.status(400).json({ error: error.message });
     }
 });
 
 // Rate flashcard (with SRS calculation)
-app.post('/:id/rate', async (c) => {
+router.post('/:id/rate', async (req: Request, res: Response) => {
     try {
-        const body = await c.req.json<{ rating: number }>();
-        const flashcard = await Flashcard.findById(c.req.param('id'));
+        const body = req.body as { rating: number };
+        const flashcard = await Flashcard.findById(req.params.id);
 
         if (!flashcard) {
-            return c.json({ error: 'Flashcard not found' }, 404);
+            res.status(404).json({ error: 'Flashcard not found' });
+            return;
         }
 
         // Store rating history
@@ -152,23 +156,24 @@ app.post('/:id/rate', async (c) => {
 
         await flashcard.save();
 
-        return c.json(flashcard);
+        res.json(flashcard);
     } catch (error: any) {
-        return c.json({ error: error.message }, 400);
+        res.status(400).json({ error: error.message });
     }
 });
 
 // Delete flashcard
-app.delete('/:id', async (c) => {
+router.delete('/:id', async (req: Request, res: Response) => {
     try {
-        const flashcard = await Flashcard.findByIdAndDelete(c.req.param('id'));
+        const flashcard = await Flashcard.findByIdAndDelete(req.params.id);
         if (!flashcard) {
-            return c.json({ error: 'Flashcard not found' }, 404);
+            res.status(404).json({ error: 'Flashcard not found' });
+            return;
         }
-        return c.json({ message: 'Flashcard deleted successfully' });
+        res.json({ message: 'Flashcard deleted successfully' });
     } catch (error: any) {
-        return c.json({ error: error.message }, 500);
+        res.status(500).json({ error: error.message });
     }
 });
 
-export default app;
+export default router;

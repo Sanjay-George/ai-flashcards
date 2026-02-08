@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
+import { useAuthStore } from '../stores/authStore'
 
 // Backend API client (decks, flashcards)
 const api: AxiosInstance = axios.create({
@@ -19,8 +20,6 @@ export const aiApi: AxiosInstance = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
-        // Dynamically import to avoid circular dependencies
-        const { useAuthStore } = await import('../stores/authStore')
         const authStore = useAuthStore()
 
         const token = await authStore.getToken()
@@ -29,14 +28,12 @@ api.interceptors.request.use(
         }
         return config
     },
-    (error) => Promise.reject(error)
+    (error) => Promise.reject(error instanceof Error ? error : new Error(String(error)))
 )
 
 // Request interceptor for AI API to add auth token
 aiApi.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
-        // Dynamically import to avoid circular dependencies
-        const { useAuthStore } = await import('../stores/authStore')
         const authStore = useAuthStore()
 
         const token = await authStore.getToken()
@@ -45,7 +42,7 @@ aiApi.interceptors.request.use(
         }
         return config
     },
-    (error) => Promise.reject(error)
+    (error) => Promise.reject(error instanceof Error ? error : new Error(String(error)))
 )
 
 // Response interceptor for error handling

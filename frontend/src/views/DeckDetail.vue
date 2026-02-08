@@ -241,7 +241,7 @@ const handleVisibilityToggle = async (): Promise<void> => {
     if (!deck.value) return
     try {
         await deckStore.toggleVisibility(deckId, !deck.value.isPublic)
-    } catch (e: any) {
+    } catch (e: unknown) {
         editError.value = e.message || 'Failed to update visibility'
     }
 }

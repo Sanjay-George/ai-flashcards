@@ -1,19 +1,28 @@
-import type { Context, Next } from 'hono';
+import type { Request, Response, NextFunction } from 'express';
 import admin from 'firebase-admin';
+import { createRequire } from 'module';
+import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
-    // Option 1: Use service account JSON file path from env
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-
-    // Option 2: Use individual env vars
     const projectId = process.env.FIREBASE_PROJECT_ID;
 
     if (serviceAccountPath) {
-        const serviceAccount = require(serviceAccountPath);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+        try {
+            let serviceAccount: any;
+            const serviceAccountJson = fs.readFileSync(serviceAccountPath, 'utf8');
+            serviceAccount = JSON.parse(serviceAccountJson);
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+        } catch (err: unknown) {
+            console.warn('⚠️ Failed to load Firebase service account - auth will be disabled:', (err as Error).message);
+        }
     } else if (projectId) {
         admin.initializeApp({
             credential: admin.credential.cert({
@@ -33,50 +42,20 @@ export interface AuthUser {
     name?: string;
 }
 
+// Extend Express Request to carry user info
+export interface AuthRequest extends Request {
+    user?: AuthUser | null;
+}
+
 /**
  * Auth middleware - verifies Firebase ID token
- * Adds user info to context for use in route handlers
+ * Adds user info to request for use in route handlers
  */
-export const authMiddleware = async (c: Context, next: Next) => {
-    const authHeader = c.req.header('Authorization');
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized - No token provided' }, 401);
-    }
-
-    const token = authHeader.substring(7);
-
-    try {
-        if (!admin.apps.length) {
-            return c.json({ error: 'Unauthorized - Firebase not configured' }, 401);
-        }
-
-        const decodedToken = await admin.auth().verifyIdToken(token);
-
-        const user: AuthUser = {
-            uid: decodedToken.uid,
-            email: decodedToken.email,
-            name: decodedToken.name
-        };
-
-        c.set('user', user);
-        await next();
-    } catch (error: any) {
-        console.error('Auth error:', error.message);
-        return c.json({ error: 'Unauthorized - Invalid token' }, 401);
-    }
-};
-
-/**
- * Optional auth middleware - allows unauthenticated requests
- * but adds user info if token is provided
- */
-export const optionalAuthMiddleware = async (c: Context, next: Next) => {
-    const authHeader = c.req.header('Authorization');
-
-    if (!authHeader?.startsWith('Bearer ')) {
-        c.set('user', null);
-        await next();
+        res.status(401).json({ error: 'Unauthorized - No token provided' });
         return;
     }
 
@@ -84,23 +63,61 @@ export const optionalAuthMiddleware = async (c: Context, next: Next) => {
 
     try {
         if (!admin.apps.length) {
-            c.set('user', { uid: 'dev-user', email: 'dev@test.com' });
-            await next();
+            res.status(401).json({ error: 'Unauthorized - Firebase not configured' });
             return;
         }
 
         const decodedToken = await admin.auth().verifyIdToken(token);
 
-        c.set('user', {
+        req.user = {
             uid: decodedToken.uid,
             email: decodedToken.email,
             name: decodedToken.name
-        });
-    } catch (error) {
-        c.set('user', null);
+        };
+
+        next();
+    } catch (error: unknown) {
+        const message = (error as Error).message;
+        console.error('Auth error:', message);
+        res.status(401).json({ error: 'Unauthorized - Invalid token' });
+    }
+};
+
+/**
+ * Optional auth middleware - allows unauthenticated requests
+ * but adds user info if token is provided
+ */
+export const optionalAuthMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+        req.user = null;
+        next();
+        return;
     }
 
-    await next();
+    const token = authHeader.substring(7);
+
+    try {
+        if (!admin.apps.length) {
+            req.user = { uid: 'dev-user', email: 'dev@test.com' };
+            next();
+            return;
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(token);
+
+        req.user = {
+            uid: decodedToken.uid,
+            email: decodedToken.email,
+            name: decodedToken.name
+        };
+    } catch (error) {
+        console.warn('Optional auth failed:', (error as Error).message);
+        req.user = null;
+    }
+
+    next();
 };
 
 export { admin };

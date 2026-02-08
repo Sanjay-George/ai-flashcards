@@ -35,7 +35,7 @@ onMounted(() => {
     if (state?.generatedDeck) {
         generatedDeck.value = state.generatedDeck
         originalLexemes.value = [...state.generatedDeck.lexemes]
-        
+
         // Add initial creation message to history
         if (state.initialMessage) {
             messageHistory.value.push({
@@ -89,7 +89,7 @@ const handleEdit = async (): Promise<void> => {
             })
         } else if (result.action === 'remove') {
             const termsToRemove = result.updated_lexemes.map((l: Lexeme) => l.term)
-            pendingRemovals.value = generatedDeck.value.lexemes.filter((l: Lexeme) => 
+            pendingRemovals.value = generatedDeck.value.lexemes.filter((l: Lexeme) =>
                 termsToRemove.includes(l.term)
             )
             pendingAdditions.value = []
@@ -100,7 +100,7 @@ const handleEdit = async (): Promise<void> => {
         } else if (result.action === 'edit') {
             // For edits, show old as removal and new as addition
             const editedTerms = result.updated_lexemes.map((l: Lexeme) => l.term)
-            pendingRemovals.value = generatedDeck.value.lexemes.filter((l: Lexeme) => 
+            pendingRemovals.value = generatedDeck.value.lexemes.filter((l: Lexeme) =>
                 editedTerms.includes(l.term)
             )
             pendingAdditions.value = result.updated_lexemes
@@ -253,12 +253,11 @@ const previewLexemes = computed(() => {
                 <div class="form-group">
                     <label>Lexemes ({{ previewLexemes.length }})</label>
                     <div class="max-h-[500px] overflow-y-auto flex flex-col gap-3">
-                        <div v-for="(lexeme, index) in previewLexemes" :key="`${lexeme.term}-${index}`"
-                            :class="[
-                                'bg-card p-4 rounded-lg grid grid-cols-[1fr_2fr_auto_auto] gap-3 items-center',
-                                pendingAdditions.some(l => l.term === lexeme.term) ? 'border-2 border-green-500' : '',
-                                pendingRemovals.some(l => l.term === lexeme.term) ? 'border-2 border-red-500 opacity-50' : ''
-                            ]">
+                        <div v-for="(lexeme, index) in previewLexemes" :key="`${lexeme.term}-${index}`" :class="[
+                            'bg-card p-4 rounded-lg grid grid-cols-[1fr_2fr_auto_auto] gap-3 items-center',
+                            pendingAdditions.some(l => l.term === lexeme.term) ? 'border-2 border-green-500' : '',
+                            pendingRemovals.some(l => l.term === lexeme.term) ? 'border-2 border-red-500 opacity-50' : ''
+                        ]">
                             <div class="font-semibold text-foreground text-lg">{{ lexeme.term }}</div>
                             <div class="text-muted-foreground">{{ lexeme.meaning }}</div>
                             <div class="bg-secondary px-3 py-1 rounded-full text-sm text-secondary-foreground">
@@ -287,11 +286,10 @@ const previewLexemes = computed(() => {
 
                 <!-- Chat History -->
                 <div class="mb-4 bg-secondary rounded-lg p-4 max-h-[300px] overflow-y-auto">
-                    <div v-for="(message, index) in messageHistory" :key="index"
-                        :class="[
-                            'mb-3 p-3 rounded-lg',
-                            message.role === 'user' ? 'bg-primary text-primary-foreground ml-8' : 'bg-card text-foreground mr-8'
-                        ]">
+                    <div v-for="(message, index) in messageHistory" :key="index" :class="[
+                        'mb-3 p-3 rounded-lg',
+                        message.role === 'user' ? 'bg-primary text-primary-foreground ml-8' : 'bg-card text-foreground mr-8'
+                    ]">
                         <div class="text-xs font-semibold mb-1 opacity-70">
                             {{ message.role === 'user' ? '👤 You' : '🤖 AI' }}
                         </div>
@@ -309,7 +307,8 @@ const previewLexemes = computed(() => {
                         <div>
                             <strong class="text-yellow-900 dark:text-yellow-200">Pending Changes</strong>
                             <p class="text-sm text-yellow-800 dark:text-yellow-300 mt-1">
-                                <span v-if="pendingAction === 'add'">Adding {{ pendingAdditions.length }} lexeme(s)</span>
+                                <span v-if="pendingAction === 'add'">Adding {{ pendingAdditions.length }}
+                                    lexeme(s)</span>
                                 <span v-if="pendingAction === 'remove'">Removing {{ pendingRemovals.length }}
                                     lexeme(s)</span>
                                 <span v-if="pendingAction === 'edit'">Editing {{ pendingAdditions.length }}
@@ -331,9 +330,8 @@ const previewLexemes = computed(() => {
                 <div class="form-group">
                     <label for="edit-instruction">Your instruction</label>
                     <textarea id="edit-instruction" v-model="editInstruction" class="form-control"
-                        placeholder="E.g., 'Add articles to all German nouns' or 'Remove all verbs'"
-                        rows="4" :disabled="isEditing"
-                        @keydown.enter.ctrl="handleEdit"></textarea>
+                        placeholder="E.g., 'Add articles to all German nouns' or 'Remove all verbs'" rows="4"
+                        :disabled="isEditing" @keydown.enter.ctrl="handleEdit"></textarea>
                     <p class="text-xs text-muted-foreground mt-1">Tip: Press Ctrl+Enter to send</p>
                 </div>
 

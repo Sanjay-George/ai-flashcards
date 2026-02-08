@@ -56,7 +56,7 @@ const generateDeck = async () => {
             userMessage.value,
             extractedText.value || undefined
         )
-        
+
         // Navigate to edit page with the generated deck
         router.push({
             name: 'EditGeneratedDeck',
@@ -153,7 +153,8 @@ const getLanguageName = (code: string): string => {
                 </div>
 
                 <div class="flex gap-4">
-                    <button @click="generateDeck" class="btn btn-primary" :disabled="isGenerating || !userMessage.trim()">
+                    <button @click="generateDeck" class="btn btn-primary"
+                        :disabled="isGenerating || !userMessage.trim()">
                         {{ isGenerating ? 'Generating...' : '✨ Generate Deck with AI' }}
                     </button>
                     <button v-if="userMessage || uploadedImage" @click="resetForm" class="btn btn-secondary">

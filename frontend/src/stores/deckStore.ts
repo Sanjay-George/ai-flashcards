@@ -120,8 +120,8 @@ export const useDeckStore = defineStore('deck', () => {
 
     // AI: Edit deck
     const editDeckWithAI = async (
-        deckJson: any, 
-        instruction: string, 
+        deckJson: any,
+        instruction: string,
         messageHistory?: ChatMessage[]
     ): Promise<EditDeckResponse> => {
         loading.value = true
@@ -217,8 +217,8 @@ export const useDeckStore = defineStore('deck', () => {
             const response = await api.post<Deck>(`/decks/${deckId}/clone`)
             decks.value.unshift(response.data)
             return response.data
-        } catch (e: any) {
-            error.value = e.message
+        } catch (e: unknown) {
+            error.value = (e as Error).message
             throw e
         } finally {
             loading.value = false
@@ -237,8 +237,8 @@ export const useDeckStore = defineStore('deck', () => {
                 currentDeck.value = response.data
             }
             return response.data
-        } catch (e: any) {
-            error.value = e.message
+        } catch (e: unknown) {
+            error.value = (e as Error).message
             throw e
         }
     }
