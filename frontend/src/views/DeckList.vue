@@ -3,13 +3,20 @@ import { onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
 import { useAuthStore } from '../stores/authStore'
+import { useProgressStore } from '../stores/progressStore'
 
 const router = useRouter()
 const deckStore = useDeckStore()
 const authStore = useAuthStore()
+const progressStore = useProgressStore()
 
-onMounted(() => {
-    deckStore.fetchDecks()
+onMounted(async () => {
+    await deckStore.fetchDecks()
+    // Fetch masteries for owned decks (for progress bars)
+    if (authStore.isAuthenticated) {
+        progressStore.fetchAllDeckMasteries()
+        progressStore.fetchProfile()
+    }
 })
 
 // Check if user owns a deck
@@ -42,6 +49,22 @@ const formatDate = (dateString: string): string => {
         month: 'short',
         day: 'numeric'
     })
+}
+
+// Get progress bar color based on mastery percentage
+const getMasteryColor = (percent: number): string => {
+    if (percent >= 80) return 'from-green-400 to-emerald-500'
+    if (percent >= 50) return 'from-blue-400 to-cyan-500'
+    if (percent >= 25) return 'from-yellow-400 to-orange-500'
+    return 'from-orange-400 to-red-400'
+}
+
+const getMasteryLabel = (percent: number): string => {
+    if (percent >= 80) return 'Mastered'
+    if (percent >= 50) return 'Proficient'
+    if (percent >= 25) return 'Learning'
+    if (percent > 0) return 'Getting started'
+    return 'Not started'
 }
 </script>
 
@@ -109,6 +132,24 @@ const formatDate = (dateString: string): string => {
                     <span v-for="tag in deck.tags" :key="tag" class="tag tag-primary">
                         {{ tag }}
                     </span>
+                </div>
+
+                <!-- Mastery Progress Bar (owner only) -->
+                <div v-if="isOwner(deck.userId) && progressStore.getDeckMastery(deck._id)" class="mt-1">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-medium text-muted-foreground">
+                            {{ getMasteryLabel(progressStore.getDeckMastery(deck._id)!.masteryPercent) }}
+                        </span>
+                        <span class="text-xs font-semibold text-foreground">
+                            {{ progressStore.getDeckMastery(deck._id)!.masteryPercent }}%
+                        </span>
+                    </div>
+                    <div class="w-full h-2 bg-border rounded-full overflow-hidden">
+                        <div class="h-full bg-linear-to-r transition-all duration-500 rounded-full"
+                            :class="getMasteryColor(progressStore.getDeckMastery(deck._id)!.masteryPercent)"
+                            :style="{ width: progressStore.getDeckMastery(deck._id)!.masteryPercent + '%' }">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex flex-col gap-1 text-sm text-muted-foreground">

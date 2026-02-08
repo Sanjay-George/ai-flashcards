@@ -4,13 +4,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useAuthStore } from '../stores/authStore'
-import type { Deck, Lexeme } from '../types/index'
+import { useProgressStore } from '../stores/progressStore'
+import type { Deck, Lexeme, DeckMastery } from '../types/index'
 
 const route = useRoute()
 const router = useRouter()
 const deckStore = useDeckStore()
 const flashcardStore = useFlashcardStore()
 const authStore = useAuthStore()
+const progressStore = useProgressStore()
 
 const deckId = route.params.id as string
 const editInstruction = ref<string>('')
@@ -19,6 +21,7 @@ const editError = ref<string>('')
 const generatingFlashcards = ref<boolean>(false)
 const selectedMode = ref<'simple' | 'master'>('simple')
 const sessionSize = 10
+const deckMastery = ref<DeckMastery | null>(null)
 
 // Pending changes state
 const hasPendingChanges = ref<boolean>(false)
@@ -39,6 +42,10 @@ const isOwner = computed(() => deck.value?.userId === authStore.userId)
 
 onMounted(async () => {
     await deckStore.fetchDeck(deckId)
+    // Fetch mastery for owner's deck
+    if (deck.value?.userId === authStore.userId) {
+        deckMastery.value = await progressStore.fetchDeckMastery(deckId)
+    }
 })
 
 const deck = computed<Deck | null>(() => deckStore.currentDeck)
@@ -416,6 +423,58 @@ const handleClone = async (): Promise<void> => {
             <!-- Error message (shown regardless of pending state) -->
             <div v-if="editError" class="bg-destructive/10 text-destructive p-3 rounded-lg mb-6">
                 {{ editError }}
+            </div>
+
+            <!-- Deck Mastery Progress (owner only) -->
+            <div v-if="isOwner && deckMastery" class="card mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-foreground">Deck Mastery</h2>
+                    <span class="text-2xl font-bold" :class="{
+                        'text-green-500': deckMastery.masteryPercent >= 80,
+                        'text-blue-500': deckMastery.masteryPercent >= 50 && deckMastery.masteryPercent < 80,
+                        'text-yellow-500': deckMastery.masteryPercent >= 25 && deckMastery.masteryPercent < 50,
+                        'text-orange-500': deckMastery.masteryPercent < 25
+                    }">
+                        {{ deckMastery.masteryPercent }}%
+                    </span>
+                </div>
+
+                <!-- Progress bar -->
+                <div class="w-full h-3 bg-border rounded-full overflow-hidden mb-4">
+                    <div class="h-full bg-linear-to-r transition-all duration-700 rounded-full"
+                        :class="{
+                            'from-green-400 to-emerald-500': deckMastery.masteryPercent >= 80,
+                            'from-blue-400 to-cyan-500': deckMastery.masteryPercent >= 50 && deckMastery.masteryPercent < 80,
+                            'from-yellow-400 to-orange-500': deckMastery.masteryPercent >= 25 && deckMastery.masteryPercent < 50,
+                            'from-orange-400 to-red-400': deckMastery.masteryPercent < 25
+                        }"
+                        :style="{ width: deckMastery.masteryPercent + '%' }">
+                    </div>
+                </div>
+
+                <!-- Mastery breakdown -->
+                <div class="grid grid-cols-5 gap-2 text-center text-xs">
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-muted-foreground">{{ deckMastery.masteryBreakdown.new }}</div>
+                        <div class="text-muted-foreground">New</div>
+                    </div>
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-orange-500">{{ deckMastery.masteryBreakdown.learning }}</div>
+                        <div class="text-muted-foreground">Learning</div>
+                    </div>
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-yellow-500">{{ deckMastery.masteryBreakdown.familiar }}</div>
+                        <div class="text-muted-foreground">Familiar</div>
+                    </div>
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-blue-500">{{ deckMastery.masteryBreakdown.proficient }}</div>
+                        <div class="text-muted-foreground">Proficient</div>
+                    </div>
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-green-500">{{ deckMastery.masteryBreakdown.mastered }}</div>
+                        <div class="text-muted-foreground">Mastered</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Study Flashcards -->

@@ -3,13 +3,15 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useDeckStore } from '../stores/deckStore'
+import { useProgressStore } from '../stores/progressStore'
 import { aiApi } from '../services/api'
-import type { Flashcard, Deck } from '../types/index'
+import type { Flashcard, Deck, SessionCompleteResponse } from '../types/index'
 
 const route = useRoute()
 const router = useRouter()
 const flashcardStore = useFlashcardStore()
 const deckStore = useDeckStore()
+const progressStore = useProgressStore()
 
 const deckId = route.params.id as string
 const currentIndex = ref<number>(0)
@@ -20,6 +22,10 @@ const chatInput = ref<string>('')
 const chatAnswer = ref<string>('')
 const chatLoading = ref<boolean>(false)
 const chatError = ref<string>('')
+
+// Progress tracking
+const sessionRatings = ref<number[]>([])
+const sessionResult = ref<SessionCompleteResponse | null>(null)
 
 // Language-specific reference URLs
 const referenceUrls: Record<string, { baseUrl: string; name: string }> = {
@@ -89,6 +95,8 @@ const rateCard = async (rating: number): Promise<void> => {
     if (isNewCard) {
         // Rate the lexeme (not the flashcard) - this updates SRS data
         deckStore.rateLexeme(deckId, currentCard.value.lexemeId, rating)
+        // Track rating for XP calculation
+        sessionRatings.value.push(rating)
     }
 
     if (currentIndex.value < flashcards.value.length - 1) {
@@ -99,7 +107,17 @@ const rateCard = async (rating: number): Promise<void> => {
             highestReviewedIndex.value = currentIndex.value
         }
     } else {
+        // Session complete - award XP
         sessionComplete.value = true
+        if (deck.value && sessionRatings.value.length > 0) {
+            const result = await progressStore.completeSession(
+                deckId,
+                deck.value.title,
+                sessionRatings.value.length,
+                sessionRatings.value
+            )
+            sessionResult.value = result
+        }
     }
 }
 
@@ -169,10 +187,62 @@ const askFlashcardQuestion = async (): Promise<void> => {
             <p class="mt-4">Loading flashcards...</p>
         </div>
 
-        <div v-else-if="sessionComplete" class="card text-center py-16 px-8 max-w-xl mx-auto mt-8">
+        <div v-else-if="sessionComplete" class="card text-center py-12 px-8 max-w-xl mx-auto mt-8">
             <div class="text-7xl mb-4">🎉</div>
             <h1 class="text-3xl font-bold text-foreground mb-2">Session Complete!</h1>
-            <p class="text-muted-foreground mb-8">You've reviewed all {{ flashcards.length }} flashcards</p>
+            <p class="text-muted-foreground mb-6">You've reviewed all {{ flashcards.length }} flashcards</p>
+
+            <!-- XP Earned -->
+            <div v-if="sessionResult" class="mb-8">
+                <!-- Level up celebration -->
+                <div v-if="sessionResult.leveledUp" class="mb-6 p-4 bg-linear-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl border border-yellow-300 dark:border-yellow-700">
+                    <div class="text-4xl mb-2">🏆</div>
+                    <p class="text-lg font-bold text-yellow-700 dark:text-yellow-400">Level Up!</p>
+                    <p class="text-2xl font-bold text-foreground">
+                        {{ sessionResult.currentMilestone.emoji }} {{ sessionResult.currentMilestone.title }}
+                    </p>
+                    <p class="text-sm text-muted-foreground mt-1">{{ sessionResult.currentMilestone.description }}</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="p-3 bg-secondary rounded-lg">
+                        <div class="text-2xl font-bold text-primary">+{{ sessionResult.xpEarned }}</div>
+                        <div class="text-xs text-muted-foreground">XP Earned</div>
+                    </div>
+                    <div class="p-3 bg-secondary rounded-lg">
+                        <div class="text-2xl font-bold text-foreground">{{ sessionResult.totalXP }}</div>
+                        <div class="text-xs text-muted-foreground">Total XP</div>
+                    </div>
+                    <div class="p-3 bg-secondary rounded-lg">
+                        <div class="text-2xl font-bold text-foreground">🔥 {{ sessionResult.currentStreak }}</div>
+                        <div class="text-xs text-muted-foreground">Day Streak</div>
+                    </div>
+                </div>
+
+                <!-- Level progress bar -->
+                <div v-if="sessionResult.nextMilestone" class="mb-2">
+                    <div class="flex justify-between items-center text-sm mb-1">
+                        <span class="text-muted-foreground">
+                            {{ sessionResult.currentMilestone.emoji }} Lv.{{ sessionResult.level }}
+                            {{ sessionResult.currentMilestone.title }}
+                        </span>
+                        <span class="text-muted-foreground">
+                            {{ sessionResult.nextMilestone.emoji }} Lv.{{ sessionResult.nextMilestone.level }}
+                        </span>
+                    </div>
+                    <div class="w-full h-2.5 bg-border rounded-full overflow-hidden">
+                        <div class="h-full bg-linear-to-r from-primary to-purple-600 transition-all duration-700 rounded-full"
+                            :style="{ width: Math.round(((sessionResult.totalXP - sessionResult.currentMilestone.xpRequired) / (sessionResult.nextMilestone.xpRequired - sessionResult.currentMilestone.xpRequired)) * 100) + '%' }">
+                        </div>
+                    </div>
+                    <p class="text-xs text-muted-foreground mt-1">
+                        {{ sessionResult.xpToNextLevel }} XP to next level
+                    </p>
+                </div>
+                <div v-else class="text-sm text-muted-foreground">
+                    {{ sessionResult.currentMilestone.emoji }} Max level reached! You're a {{ sessionResult.currentMilestone.title }}!
+                </div>
+            </div>
 
             <div class="flex justify-center gap-4">
                 <button @click="restartSession" class="btn btn-primary">

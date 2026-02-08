@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import mongoose from 'mongoose';
 import deckRoutes from './routes/decks';
 import flashcardRoutes from './routes/flashcards';
+import progressRoutes from './routes/progress';
 
 const app = new Hono();
 
@@ -21,6 +22,7 @@ mongoose.connect(MONGODB_URI).then(() => {
 // Routes - AI routes removed, frontend calls AI service directly
 app.route('/api/decks', deckRoutes);
 app.route('/api/flashcards', flashcardRoutes);
+app.route('/api/progress', progressRoutes);
 
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));

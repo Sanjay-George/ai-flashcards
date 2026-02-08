@@ -1,11 +1,24 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
+import { useProgressStore } from './stores/progressStore'
 
 const authStore = useAuthStore()
+const progressStore = useProgressStore()
+
+// Fetch progress when user logs in
+watch(() => authStore.isAuthenticated, (isAuth) => {
+    if (isAuth) {
+        progressStore.fetchProfile()
+    } else {
+        progressStore.clearProgress()
+    }
+}, { immediate: true })
 
 const handleLogout = async () => {
     await authStore.logout()
+    progressStore.clearProgress()
 }
 </script>
 
@@ -18,6 +31,16 @@ const handleLogout = async () => {
 
                     <!-- Auth Section -->
                     <div v-if="authStore.isAuthenticated" class="flex items-center gap-4">
+                        <!-- XP / Level badge -->
+                        <div v-if="progressStore.profile" class="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
+                            <span class="text-sm">{{ progressStore.profile.currentMilestone.emoji }}</span>
+                            <span class="text-xs font-semibold text-primary">
+                                Lv.{{ progressStore.profile.level }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">
+                                {{ progressStore.profile.totalXP }} XP
+                            </span>
+                        </div>
                         <span class="text-sm text-muted-foreground">
                             {{ authStore.user?.email }}
                         </span>
