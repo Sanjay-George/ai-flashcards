@@ -1,14 +1,11 @@
-import { Hono } from 'hono';
-import { Deck } from '../models/Deck';
-import { UserProgress } from '../models/UserProgress';
-import { authMiddleware } from '../middleware/auth';
-import type { AuthUser } from '../middleware/auth';
+import { Router } from 'express';
+import type { Response } from 'express';
+import { Deck } from '../models/Deck.js';
+import { UserProgress } from '../models/UserProgress.js';
+import { authMiddleware } from '../middleware/auth.js';
+import type { AuthUser, AuthRequest } from '../middleware/auth.js';
 
-type Variables = {
-    user: AuthUser;
-};
-
-const app = new Hono<{ Variables: Variables }>();
+const router = Router();
 
 /**
  * Milestone definitions - meaningful, well-paced progression
@@ -165,9 +162,9 @@ function calculateDeckMastery(lexemes: any[]): {
 // ========== ROUTES ==========
 
 // Get user progress profile
-app.get('/', authMiddleware, async (c) => {
+router.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const user = c.get('user') as AuthUser;
+        const user = req.user as AuthUser;
 
         let progress = await UserProgress.findOne({ userId: user.uid });
 
@@ -180,7 +177,7 @@ app.get('/', authMiddleware, async (c) => {
         const currentMilestone = MILESTONES.find(m => m.level === progress!.level) || MILESTONES[0];
         const nextMilestone = MILESTONES.find(m => m.level === progress!.level + 1) || null;
 
-        return c.json({
+        res.json({
             totalXP: progress.totalXP,
             level: progress.level,
             currentMilestone,
@@ -194,23 +191,24 @@ app.get('/', authMiddleware, async (c) => {
             milestones: MILESTONES
         });
     } catch (error: any) {
-        return c.json({ error: error.message }, 500);
+        res.status(500).json({ error: error.message });
     }
 });
 
 // Complete a study session - award XP
-app.post('/complete-session', authMiddleware, async (c) => {
+router.post('/complete-session', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const user = c.get('user') as AuthUser;
-        const body = await c.req.json<{
+        const user = req.user as AuthUser;
+        const body = req.body as {
             deckId: string;
             deckTitle: string;
             cardsStudied: number;
             ratings: number[];
-        }>();
+        };
 
         if (!body.deckId || !body.cardsStudied || !body.ratings?.length) {
-            return c.json({ error: 'Missing required fields: deckId, cardsStudied, ratings' }, 400);
+            res.status(400).json({ error: 'Missing required fields: deckId, cardsStudied, ratings' });
+            return;
         }
 
         const avgRating = body.ratings.reduce((a, b) => a + b, 0) / body.ratings.length;
@@ -267,7 +265,7 @@ app.post('/complete-session', authMiddleware, async (c) => {
         const previousLevel = calculateLevel(progress.totalXP - xpEarned);
         const leveledUp = progress.level > previousLevel;
 
-        return c.json({
+        res.json({
             xpEarned,
             totalXP: progress.totalXP,
             level: progress.level,
@@ -279,43 +277,42 @@ app.post('/complete-session', authMiddleware, async (c) => {
             longestStreak: progress.longestStreak
         });
     } catch (error: any) {
-        return c.json({ error: error.message }, 500);
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Get deck-specific progress (mastery calculated from lexemes)
-app.get('/deck/:deckId', authMiddleware, async (c) => {
+router.get('/deck/:deckId', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const user = c.get('user') as AuthUser;
-        const deckId = c.req.param('deckId');
+        const user = req.user as AuthUser;
+        const deckId = req.params.deckId;
 
         const deck = await Deck.findById(deckId);
         if (!deck) {
-            return c.json({ error: 'Deck not found' }, 404);
+            res.status(404).json({ error: 'Deck not found' });
+            return;
         }
 
         // Only owner can see their own progress
         if (deck.userId !== user.uid) {
-            return c.json({ error: 'Access denied' }, 403);
+            res.status(403).json({ error: 'Access denied' });
+            return;
         }
 
         const { masteryPercent, masteryBreakdown } = calculateDeckMastery(deck.lexemes);
 
-        return c.json({
+        res.json({
             deckId,
             masteryPercent,
             masteryBreakdown,
             totalLexemes: deck.lexemes.length
         });
     } catch (error: any) {
-        return c.json({ error: error.message }, 500);
+        res.status(500).json({ error: error.message });
     }
 });
-
-// Get deck mastery for all user's decks (for deck list progress bars)
-app.get('/my-decks', authMiddleware, async (c) => {
+router.get('/my-decks', authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-        const user = c.get('user') as AuthUser;
+        const user = req.user as AuthUser;
 
         const decks = await Deck.find({ userId: user.uid });
 
@@ -329,15 +326,15 @@ app.get('/my-decks', authMiddleware, async (c) => {
             };
         });
 
-        return c.json(deckProgress);
+        res.json(deckProgress);
     } catch (error: any) {
-        return c.json({ error: error.message }, 500);
+        res.status(500).json({ error: error.message });
     }
 });
 
 // Get milestones list
-app.get('/milestones', async (c) => {
-    return c.json(MILESTONES);
+router.get('/milestones', async (_req: AuthRequest, res: Response) => {
+    res.json(MILESTONES);
 });
 
-export default app;
+export default router;

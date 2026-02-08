@@ -46,9 +46,8 @@ const UserProgressSchema = new Schema<IUserProgress>({
     updatedAt: { type: Date, default: Date.now }
 });
 
-UserProgressSchema.pre('save', function (next) {
+UserProgressSchema.pre('save', function () {
     this.updatedAt = new Date();
-    next();
 });
 
 export const UserProgress = mongoose.model<IUserProgress>('UserProgress', UserProgressSchema);
