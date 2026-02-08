@@ -46,7 +46,7 @@ const DeckSchema = new Schema<IDeck>({
     updatedAt: { type: Date, default: Date.now }
 });
 
-DeckSchema.pre('save', function (next) {
+DeckSchema.pre('save', function (this: IDeck, next: (err?: Error) => void) {
     this.updatedAt = new Date();
     next();
 });
