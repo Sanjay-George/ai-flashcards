@@ -1,7 +1,6 @@
 """Firebase authentication middleware for AI service"""
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from functools import wraps
 import firebase_admin
 from firebase_admin import credentials, auth
 import os
