@@ -16,6 +16,8 @@ export interface IDeck extends Document {
     title: string;
     tags: string[];
     language?: string;  // Language being learned (e.g., 'de', 'es', 'fr')
+    userId: string;     // Firebase user ID (owner)
+    isPublic: boolean;  // Whether deck is publicly visible
     lexemes: ILexeme[];
     createdAt: Date;
     updatedAt: Date;
@@ -37,14 +39,15 @@ const DeckSchema = new Schema<IDeck>({
     title: { type: String, required: true },
     tags: [{ type: String }],
     language: { type: String },  // Optional language code
+    userId: { type: String, required: true, index: true },  // Firebase user ID
+    isPublic: { type: Boolean, default: false },  // Private by default
     lexemes: [LexemeSchema],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
 
-DeckSchema.pre('save', function (next) {
+DeckSchema.pre<IDeck>('save', function () {
     this.updatedAt = new Date();
-    next();
 });
 
 export const Deck = mongoose.model<IDeck>('Deck', DeckSchema);

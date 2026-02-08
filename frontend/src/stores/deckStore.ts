@@ -5,7 +5,8 @@ import type {
     Deck,
     Lexeme,
     CreateDeckResponse,
-    EditDeckResponse
+    EditDeckResponse,
+    ChatMessage
 } from '../types/index'
 
 export { Deck, Lexeme }
@@ -118,13 +119,18 @@ export const useDeckStore = defineStore('deck', () => {
     }
 
     // AI: Edit deck
-    const editDeckWithAI = async (deckJson: any, instruction: string): Promise<EditDeckResponse> => {
+    const editDeckWithAI = async (
+        deckJson: any,
+        instruction: string,
+        messageHistory?: ChatMessage[]
+    ): Promise<EditDeckResponse> => {
         loading.value = true
         error.value = null
         try {
             const response = await aiApi.post<EditDeckResponse>('/edit_deck', {
                 deck_json: deckJson,
-                instruction
+                instruction,
+                message_history: messageHistory
             })
             return response.data
         } catch (e: any) {
@@ -203,6 +209,40 @@ export const useDeckStore = defineStore('deck', () => {
         }
     }
 
+    // Clone a deck (for public decks)
+    const cloneDeck = async (deckId: string): Promise<Deck> => {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await api.post<Deck>(`/decks/${deckId}/clone`)
+            decks.value.unshift(response.data)
+            return response.data
+        } catch (e: unknown) {
+            error.value = (e as Error).message
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    // Toggle deck visibility (public/private)
+    const toggleVisibility = async (deckId: string, isPublic: boolean): Promise<Deck> => {
+        try {
+            const response = await api.put<Deck>(`/decks/${deckId}`, { isPublic })
+            const index = decks.value.findIndex((d: Deck) => d._id === deckId)
+            if (index !== -1) {
+                decks.value[index] = response.data
+            }
+            if (currentDeck.value?._id === deckId) {
+                currentDeck.value = response.data
+            }
+            return response.data
+        } catch (e: unknown) {
+            error.value = (e as Error).message
+            throw e
+        }
+    }
+
     return {
         decks,
         currentDeck,
@@ -218,6 +258,8 @@ export const useDeckStore = defineStore('deck', () => {
         removeLexeme,
         extractTextFromImage,
         fetchDueLexemes,
-        rateLexeme
+        rateLexeme,
+        cloneDeck,
+        toggleVisibility
     }
 })

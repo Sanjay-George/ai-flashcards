@@ -22,9 +22,15 @@ class DeckCreateResponse(BaseModel):
     lexemes: List[Lexeme]
 
 
+class ChatMessage(BaseModel):
+    role: str  # 'user' or 'assistant'
+    content: str
+
+
 class DeckEditRequest(BaseModel):
     deck_json: Dict[str, Any]
     instruction: str
+    message_history: Optional[List[ChatMessage]] = None
 
 
 class DeckEditResponse(BaseModel):

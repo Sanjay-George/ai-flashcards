@@ -17,6 +17,8 @@ export interface Deck {
     title: string;
     tags: string[];
     language?: string;  // Language being learned (e.g., 'de', 'es', 'fr')
+    userId: string;     // Firebase user ID (owner)
+    isPublic: boolean;  // Whether deck is publicly visible
     lexemes: Lexeme[];
     createdAt: string;
     updatedAt: string;
@@ -56,6 +58,11 @@ export interface CreateDeckResponse {
     lexemes: Lexeme[];
 }
 
+export interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
 export interface EditDeckRequest {
     deck_json: {
         title: string;
@@ -63,6 +70,7 @@ export interface EditDeckRequest {
         lexemes: Lexeme[];
     };
     instruction: string;
+    message_history?: ChatMessage[];
 }
 
 export interface EditDeckResponse {

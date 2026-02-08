@@ -192,7 +192,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
             <!-- Progress bar -->
             <div class="w-full h-2 bg-border rounded-full overflow-hidden mb-2">
-                <div class="h-full bg-gradient-to-r from-primary to-purple-600 transition-all duration-300"
+                <div class="h-full bg-linear-to-r from-primary to-purple-600 transition-all duration-300"
                     :style="{ width: progress + '%' }"></div>
             </div>
 
@@ -223,11 +223,11 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
             <!-- Flashcard -->
             <div class="perspective-[1000px] mb-8 cursor-pointer" @click="flipCard">
-                <div class="relative w-full min-h-[400px] transition-transform duration-600 transform-style-preserve-3d"
+                <div class="relative w-full min-h-100 transition-transform duration-600 transform-style-preserve-3d"
                     :class="{ 'rotate-y-180': showAnswer }">
                     <!-- Front -->
                     <div
-                        class="absolute w-full min-h-[400px] backface-hidden flex flex-col items-center justify-center p-12 bg-card rounded-xl border border-border shadow-lg">
+                        class="absolute w-full min-h-100 backface-hidden flex flex-col items-center justify-center p-12 bg-card rounded-xl border border-border shadow-lg">
                         <div class="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-6">Question
                         </div>
                         <div class="text-3xl font-semibold text-center text-foreground leading-relaxed">{{
@@ -237,7 +237,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
                     <!-- Back -->
                     <div
-                        class="absolute w-full min-h-[400px] backface-hidden rotate-y-180 flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary to-purple-600 text-white rounded-xl shadow-lg">
+                        class="absolute w-full min-h-100 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary to-purple-600 text-white rounded-xl shadow-lg">
                         <div class="text-sm font-semibold uppercase tracking-wide opacity-80 mb-6">Answer</div>
                         <div class="text-3xl font-semibold text-center leading-relaxed">{{ currentCard.answer }}</div>
 
@@ -277,7 +277,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
                     <div class="flex justify-center gap-3 flex-wrap">
                         <button @click="rateCard(1)"
                             class="btn px-5 py-3 bg-red-400 text-white hover:bg-red-500 hover:-translate-y-0.5 transition-all">
-                            😞 Again
+                            😞 Not at all
                         </button>
                         <button @click="rateCard(2)"
                             class="btn px-5 py-3 bg-orange-400 text-white hover:bg-orange-500 hover:-translate-y-0.5 transition-all">

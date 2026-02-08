@@ -1,12 +1,37 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import { useAuthStore } from './stores/authStore'
+
+const authStore = useAuthStore()
+
+const handleLogout = async () => {
+    await authStore.logout()
+}
 </script>
 
 <template>
     <div id="app" class="min-h-screen flex flex-col">
         <header class="bg-card text-foreground py-4 border-b border-border shadow-sm">
             <div class="max-w-7xl mx-auto px-5 w-full">
-                <h1 class="text-2xl font-bold mb-3 tracking-tight">🎴 Flashcards AI</h1>
+                <div class="flex justify-between items-center mb-3">
+                    <h1 class="text-2xl font-bold tracking-tight">🎴 Flashcards AI</h1>
+
+                    <!-- Auth Section -->
+                    <div v-if="authStore.isAuthenticated" class="flex items-center gap-4">
+                        <span class="text-sm text-muted-foreground">
+                            {{ authStore.user?.email }}
+                        </span>
+                        <button @click="handleLogout"
+                            class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            Sign Out
+                        </button>
+                    </div>
+                    <div v-else>
+                        <router-link to="/login" class="btn btn-primary text-sm px-4 py-2">
+                            Sign In
+                        </router-link>
+                    </div>
+                </div>
                 <nav class="flex gap-2">
                     <router-link to="/"
                         class="text-muted-foreground no-underline font-medium text-sm px-3.5 py-2 rounded-md transition-all duration-200 hover:text-foreground hover:bg-accent [&.router-link-active]:text-primary [&.router-link-active]:bg-primary/10">
@@ -16,7 +41,7 @@ import { RouterView } from 'vue-router'
                         class="text-muted-foreground no-underline font-medium text-sm px-3.5 py-2 rounded-md transition-all duration-200 hover:text-foreground hover:bg-accent [&.router-link-active]:text-primary [&.router-link-active]:bg-primary/10">
                         My Decks
                     </router-link>
-                    <router-link to="/create"
+                    <router-link v-if="authStore.isAuthenticated" to="/create"
                         class="text-muted-foreground no-underline font-medium text-sm px-3.5 py-2 rounded-md transition-all duration-200 hover:text-foreground hover:bg-accent [&.router-link-active]:text-primary [&.router-link-active]:bg-primary/10">
                         Create Deck
                     </router-link>
