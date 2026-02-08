@@ -26,7 +26,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Computed
     const isAuthenticated = computed(() => !!user.value)
-    const userId = computed(() => user.value?.uid || null)
+    const userId = computed(() => user.value?.uid ?? null)
 
     // Initialize auth state listener
     const initAuth = () => {
@@ -67,7 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const result = await signInWithEmailAndPassword(auth, email, password)
             token.value = await result.user.getIdToken()
-        } catch (e: any) {
+        } catch (e: unknown) {
             error.value = getErrorMessage(e.code)
             throw e
         } finally {
