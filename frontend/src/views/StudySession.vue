@@ -227,7 +227,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
                     :class="{ 'rotate-y-180': showAnswer }">
                     <!-- Front -->
                     <div
-                        class="absolute w-full min-h-[400px] backface-hidden flex flex-col items-center justify-center p-12 bg-card rounded-xl border border-border shadow-lg">
+                        class="absolute w-full min-h-100 backface-hidden flex flex-col items-center justify-center p-12 bg-card rounded-xl border border-border shadow-lg">
                         <div class="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-6">Question
                         </div>
                         <div class="text-3xl font-semibold text-center text-foreground leading-relaxed">{{
@@ -237,7 +237,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
                     <!-- Back -->
                     <div
-                        class="absolute w-full min-h-[400px] backface-hidden rotate-y-180 flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary to-purple-600 text-white rounded-xl shadow-lg">
+                        class="absolute w-full min-h-100 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary to-purple-600 text-white rounded-xl shadow-lg">
                         <div class="text-sm font-semibold uppercase tracking-wide opacity-80 mb-6">Answer</div>
                         <div class="text-3xl font-semibold text-center leading-relaxed">{{ currentCard.answer }}</div>
 
@@ -311,7 +311,8 @@ const askFlashcardQuestion = async (): Promise<void> => {
                         </button>
                     </div>
                     <p v-if="chatError" class="text-destructive mt-2">{{ chatError }}</p>
-                    <div v-if="chatAnswer" class="mt-3 bg-card p-3 rounded-lg border border-border" v-html="chatAnswer">
+                    <div v-if="chatAnswer" class="mt-3 bg-card p-3 rounded-lg border border-border">
+                        {{ chatAnswer }}
                     </div>
                 </div>
             </div>

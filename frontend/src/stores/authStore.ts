@@ -61,48 +61,45 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     // Sign in with email/password
-    const login = async (email: string, password: string) => {
+    // Helper to wrap async actions with loading/error handling
+    const runActionAsync = async <T>(fn: () => Promise<T>): Promise<T | null> => {
         loading.value = true
         error.value = null
         try {
-            const result = await signInWithEmailAndPassword(auth, email, password)
-            token.value = await result.user.getIdToken()
+            return await fn()
         } catch (e: unknown) {
-            error.value = getErrorMessage(e.code)
+            if (e instanceof Error) {
+                error.value = getErrorMessage(e.message)
+            } else {
+                error.value = 'An unknown error occurred'
+            }
             throw e
         } finally {
             loading.value = false
         }
+    }
+
+    const login = async (email: string, password: string) => {
+        await runActionAsync(async () => {
+            const result = await signInWithEmailAndPassword(auth, email, password)
+            token.value = await result.user.getIdToken()
+        })
     }
 
     // Sign up with email/password
     const signup = async (email: string, password: string) => {
-        loading.value = true
-        error.value = null
-        try {
+        await runActionAsync(async () => {
             const result = await createUserWithEmailAndPassword(auth, email, password)
             token.value = await result.user.getIdToken()
-        } catch (e: any) {
-            error.value = getErrorMessage(e.code)
-            throw e
-        } finally {
-            loading.value = false
-        }
+        })
     }
 
     // Sign in with Google
     const loginWithGoogle = async () => {
-        loading.value = true
-        error.value = null
-        try {
+        await runActionAsync(async () => {
             const result = await signInWithPopup(auth, googleProvider)
             token.value = await result.user.getIdToken()
-        } catch (e: any) {
-            error.value = getErrorMessage(e.code)
-            throw e
-        } finally {
-            loading.value = false
-        }
+        })
     }
 
     // Sign out
@@ -113,8 +110,12 @@ export const useAuthStore = defineStore('auth', () => {
             await signOut(auth)
             user.value = null
             token.value = null
-        } catch (e: any) {
-            error.value = e.message
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                error.value = getErrorMessage(e.message)
+            } else {
+                error.value = 'An unknown error occurred'
+            }
             throw e
         } finally {
             loading.value = false

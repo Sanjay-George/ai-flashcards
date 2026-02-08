@@ -1,5 +1,6 @@
 import type { Context, Next } from 'hono';
 import admin from 'firebase-admin';
+import fs from 'fs';
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
@@ -10,7 +11,9 @@ if (!admin.apps.length) {
     const projectId = process.env.FIREBASE_PROJECT_ID;
 
     if (serviceAccountPath) {
-        const serviceAccount = require(serviceAccountPath);
+        // Read and parse the service account JSON file instead of using require with a dynamic path
+        const serviceAccountJson = fs.readFileSync(serviceAccountPath, 'utf8');
+        const serviceAccount = JSON.parse(serviceAccountJson);
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
@@ -61,16 +64,17 @@ export const authMiddleware = async (c: Context, next: Next) => {
 
         c.set('user', user);
         await next();
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Auth error:', error.message);
         return c.json({ error: 'Unauthorized - Invalid token' }, 401);
     }
 };
 
+// TODO: Rethink how to handle public decks and AI features without auth - may need separate routes or more granular checks 
 /**
  * Optional auth middleware - allows unauthenticated requests
  * but adds user info if token is provided
- */
+*/
 export const optionalAuthMiddleware = async (c: Context, next: Next) => {
     const authHeader = c.req.header('Authorization');
 
