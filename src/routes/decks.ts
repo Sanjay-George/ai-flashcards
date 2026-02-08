@@ -3,12 +3,54 @@ import { Deck } from '../models/Deck';
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth';
 import type { AuthUser } from '../middleware/auth';
 import type { IDeck } from '../types/index';
+import type { HydratedDocument } from 'mongoose';
 
 type Variables = {
     user: AuthUser | null;
+    deck?: HydratedDocument<IDeck>;
 };
 
 const app = new Hono<{ Variables: Variables }>();
+
+/**
+ * Middleware: Load deck and verify user can access it (owner or public)
+ */
+async function ownerOrPublic(c: any, next: any) {
+    const user = c.get('user') as AuthUser | null;
+    const deck = await Deck.findById(c.req.param('id'));
+
+    if (!deck) {
+        return c.json({ error: 'Deck not found' }, 404);
+    }
+
+    // Check access: must be owner or deck must be public
+    if (!deck.isPublic && deck.userId !== user?.uid) {
+        return c.json({ error: 'Access denied' }, 403);
+    }
+
+    c.set('deck', deck);
+    await next();
+}
+
+/**
+ * Middleware: Load deck and verify user is the owner
+ */
+async function ownerOnly(c: any, next: any) {
+    const user = c.get('user') as AuthUser;
+    const deck = await Deck.findById(c.req.param('id'));
+
+    if (!deck) {
+        return c.json({ error: 'Deck not found' }, 404);
+    }
+
+    // Only owner can access
+    if (deck.userId !== user.uid) {
+        return c.json({ error: 'Only the owner can access this resource' }, 403);
+    }
+
+    c.set('deck', deck);
+    await next();
+}
 
 /**
  * SM-2 Spaced Repetition Algorithm
@@ -62,6 +104,8 @@ app.get('/', optionalAuthMiddleware, async (c) => {
     try {
         const user = c.get('user') as AuthUser | null;
 
+        console.log('Fetching decks for user:', user?.email || 'Guest');
+
         let query: any;
         if (user) {
             // Authenticated: show user's decks + public decks
@@ -105,20 +149,9 @@ app.get('/public', async (c) => {
 });
 
 // Get single deck (must be owner or deck must be public)
-app.get('/:id', optionalAuthMiddleware, async (c) => {
+app.get('/:id', optionalAuthMiddleware, ownerOrPublic, async (c) => {
     try {
-        const user = c.get('user') as AuthUser | null;
-        const deck = await Deck.findById(c.req.param('id'));
-
-        if (!deck) {
-            return c.json({ error: 'Deck not found' }, 404);
-        }
-
-        // Check access: must be owner or deck must be public
-        if (!deck.isPublic && deck.userId !== user?.uid) {
-            return c.json({ error: 'Access denied' }, 403);
-        }
-
+        const deck = c.get('deck');
         return c.json(deck);
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
@@ -145,19 +178,10 @@ app.post('/', authMiddleware, async (c) => {
 });
 
 // Clone a public deck (authenticated only)
-app.post('/:id/clone', authMiddleware, async (c) => {
+app.post('/:id/clone', authMiddleware, ownerOrPublic, async (c) => {
     try {
         const user = c.get('user') as AuthUser;
-        const originalDeck = await Deck.findById(c.req.param('id'));
-
-        if (!originalDeck) {
-            return c.json({ error: 'Deck not found' }, 404);
-        }
-
-        // Can only clone public decks (or your own)
-        if (!originalDeck.isPublic && originalDeck.userId !== user.uid) {
-            return c.json({ error: 'Cannot clone private deck' }, 403);
-        }
+        const originalDeck = c.get('deck') as HydratedDocument<IDeck>;
 
         // Create a copy with fresh SRS data
         const clonedLexemes = originalDeck.lexemes.map((lexeme: any) => ({
@@ -187,20 +211,8 @@ app.post('/:id/clone', authMiddleware, async (c) => {
 });
 
 // Update deck (owner only)
-app.put('/:id', authMiddleware, async (c) => {
+app.put('/:id', authMiddleware, ownerOnly, async (c) => {
     try {
-        const user = c.get('user') as AuthUser;
-        const deck = await Deck.findById(c.req.param('id'));
-
-        if (!deck) {
-            return c.json({ error: 'Deck not found' }, 404);
-        }
-
-        // Only owner can edit
-        if (deck.userId !== user.uid) {
-            return c.json({ error: 'Only the owner can edit this deck' }, 403);
-        }
-
         const body = await c.req.json<Partial<IDeck>>();
 
         // Don't allow changing userId
@@ -219,20 +231,8 @@ app.put('/:id', authMiddleware, async (c) => {
 });
 
 // Delete deck (owner only)
-app.delete('/:id', authMiddleware, async (c) => {
+app.delete('/:id', authMiddleware, ownerOnly, async (c) => {
     try {
-        const user = c.get('user') as AuthUser;
-        const deck = await Deck.findById(c.req.param('id'));
-
-        if (!deck) {
-            return c.json({ error: 'Deck not found' }, 404);
-        }
-
-        // Only owner can delete
-        if (deck.userId !== user.uid) {
-            return c.json({ error: 'Only the owner can delete this deck' }, 403);
-        }
-
         await Deck.findByIdAndDelete(c.req.param('id'));
         return c.json({ message: 'Deck deleted successfully' });
     } catch (error: any) {
@@ -241,21 +241,10 @@ app.delete('/:id', authMiddleware, async (c) => {
 });
 
 // Remove lexeme from deck (owner only)
-app.delete('/:id/lexemes/:term', authMiddleware, async (c) => {
+app.delete('/:id/lexemes/:term', authMiddleware, ownerOnly, async (c) => {
     try {
-        const user = c.get('user') as AuthUser;
-        const deckId = c.req.param('id');
+        const deck = c.get('deck') as HydratedDocument<IDeck>;
         const term = decodeURIComponent(c.req.param('term'));
-
-        const deck = await Deck.findById(deckId);
-        if (!deck) {
-            return c.json({ error: 'Deck not found' }, 404);
-        }
-
-        // Only owner can modify
-        if (deck.userId !== user.uid) {
-            return c.json({ error: 'Only the owner can modify this deck' }, 403);
-        }
 
         // Filter out the lexeme with matching term
         const updatedLexemes = deck.lexemes.filter((lexeme: any) => lexeme.term !== term);
@@ -274,22 +263,11 @@ app.delete('/:id/lexemes/:term', authMiddleware, async (c) => {
 });
 
 // Get lexemes due for review (owner only - SRS is personal)
-app.get('/:id/lexemes/due', authMiddleware, async (c) => {
+app.get('/:id/lexemes/due', authMiddleware, ownerOnly, async (c) => {
     try {
-        const user = c.get('user') as AuthUser;
-        const deckId = c.req.param('id');
+        const deck = c.get('deck') as HydratedDocument<IDeck>;
         const limit = parseInt(c.req.query('limit') || '10');
         const now = new Date();
-
-        const deck = await Deck.findById(deckId);
-        if (!deck) {
-            return c.json({ error: 'Deck not found' }, 404);
-        }
-
-        // Only owner can study (SRS data is personal)
-        if (deck.userId !== user.uid) {
-            return c.json({ error: 'Clone this deck to study it' }, 403);
-        }
 
         // Sort lexemes by due date and priority
         const sortedLexemes = [...deck.lexemes].sort((a: any, b: any) => {
@@ -318,22 +296,11 @@ app.get('/:id/lexemes/due', authMiddleware, async (c) => {
 });
 
 // Rate a lexeme (owner only)
-app.post('/:id/lexemes/:term/rate', authMiddleware, async (c) => {
+app.post('/:id/lexemes/:term/rate', authMiddleware, ownerOnly, async (c) => {
     try {
-        const user = c.get('user') as AuthUser;
-        const deckId = c.req.param('id');
+        const deck = c.get('deck') as HydratedDocument<IDeck>;
         const term = decodeURIComponent(c.req.param('term'));
         const body = await c.req.json<{ rating: number }>();
-
-        const deck = await Deck.findById(deckId);
-        if (!deck) {
-            return c.json({ error: 'Deck not found' }, 404);
-        }
-
-        // Only owner can rate
-        if (deck.userId !== user.uid) {
-            return c.json({ error: 'Clone this deck to study it' }, 403);
-        }
 
         const lexemeIndex = deck.lexemes.findIndex((l: any) => l.term === term);
         if (lexemeIndex === -1) {
