@@ -15,14 +15,8 @@ if (!admin.apps.length) {
     if (serviceAccountPath) {
         try {
             let serviceAccount: any;
-            const trimmed = serviceAccountPath.trim();
-            // allow passing the JSON directly in the env var or a path to a JSON file
-            if (trimmed.startsWith('{')) {
-                serviceAccount = JSON.parse(trimmed);
-            } else {
-                const raw = fs.readFileSync(serviceAccountPath, 'utf8');
-                serviceAccount = JSON.parse(raw);
-            }
+            const serviceAccountJson = fs.readFileSync(serviceAccountPath, 'utf8');
+            serviceAccount = JSON.parse(serviceAccountJson);
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
             });
