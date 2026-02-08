@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { Response, NextFunction } from 'express';
+import type { Response } from 'express';
 import { Deck } from '../models/Deck.js';
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.js';
 import type { AuthUser, AuthRequest } from '../middleware/auth.js';

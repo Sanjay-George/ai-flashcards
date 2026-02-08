@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import admin from 'firebase-admin';
 import { createRequire } from 'module';
+import fs from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -12,11 +13,22 @@ if (!admin.apps.length) {
     const projectId = process.env.FIREBASE_PROJECT_ID;
 
     if (serviceAccountPath) {
-        const require = createRequire(import.meta.url);
-        const serviceAccount = require(serviceAccountPath);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+        try {
+            let serviceAccount: any;
+            const trimmed = serviceAccountPath.trim();
+            // allow passing the JSON directly in the env var or a path to a JSON file
+            if (trimmed.startsWith('{')) {
+                serviceAccount = JSON.parse(trimmed);
+            } else {
+                const raw = fs.readFileSync(serviceAccountPath, 'utf8');
+                serviceAccount = JSON.parse(raw);
+            }
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+        } catch (err: unknown) {
+            console.warn('⚠️ Failed to load Firebase service account - auth will be disabled:', (err as Error).message);
+        }
     } else if (projectId) {
         admin.initializeApp({
             credential: admin.credential.cert({

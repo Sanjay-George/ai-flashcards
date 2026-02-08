@@ -38,16 +38,18 @@ if (Number.isNaN(port)) {
     throw new Error(`Invalid PORT value: ${PORT}`);
 }
 
-app.listen(port, async () => {
+app.listen(port, () => {
     console.log(`🚀 Server running on http://localhost:${port}`);
 });
 
 // handle unhandled promise rejections
-process.on('unhandledRejection', async (err: any) => {
+process.on('unhandledRejection', (err: any) => {
     console.error('Unhandled Rejection', err);
+    process.exit(1);
 });
 
 // handle uncaught exceptions
-process.on('uncaughtException', async (err: any) => {
+process.on('uncaughtException', (err: any) => {
     console.error('Uncaught Exception', err);
+    process.exit(1);
 });
