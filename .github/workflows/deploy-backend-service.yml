@@ -56,7 +56,6 @@ jobs:
 
   deploy:
     needs: build
-    if: false
     environment: prod
     runs-on: ubuntu-latest
     steps:
