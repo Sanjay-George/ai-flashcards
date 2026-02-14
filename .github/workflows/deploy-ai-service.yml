@@ -17,7 +17,7 @@ env:
   AZURE_RESOURCE_GROUP: rg-ai-flashcards-prod
   AZURE_CONTAINER_APP_NAME: app-ai-service-prod
   ACR_REPO: app
-  ACR_IMAGE: ai-service-2
+  ACR_IMAGE: ai-service
 
 jobs:
   build:
