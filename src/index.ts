@@ -3,6 +3,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import deckRoutes from './routes/decks.js';
 import flashcardRoutes from './routes/flashcards.js';
+import progressRoutes from './routes/progress.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB connection
-const MONGODB_URI = `mongodb://${encodeURIComponent(process.env.MONGO_USER as string)}:${encodeURIComponent(process.env.MONGO_PASSWORD as string)}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${encodeURIComponent(process.env.MONGO_DB as string)}?authSource=admin` || 'mongodb://localhost:27017/flashcards_ai';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/flashcards_ai';
 
 mongoose.connect(MONGODB_URI).then(() => {
     console.log('✅ Connected to MongoDB');
@@ -25,6 +26,7 @@ mongoose.connect(MONGODB_URI).then(() => {
 // Routes - AI routes removed, frontend calls AI service directly
 app.use('/api/decks', deckRoutes);
 app.use('/api/flashcards', flashcardRoutes);
+app.use('/api/progress', progressRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

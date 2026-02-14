@@ -4,13 +4,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useAuthStore } from '../stores/authStore'
-import type { Deck, Lexeme } from '../types/index'
+import { useProgressStore } from '../stores/progressStore'
+import type { Deck, Lexeme, DeckMastery } from '../types/index'
 
 const route = useRoute()
 const router = useRouter()
 const deckStore = useDeckStore()
 const flashcardStore = useFlashcardStore()
 const authStore = useAuthStore()
+const progressStore = useProgressStore()
 
 const deckId = route.params.id as string
 const editInstruction = ref<string>('')
@@ -19,6 +21,7 @@ const editError = ref<string>('')
 const generatingFlashcards = ref<boolean>(false)
 const selectedMode = ref<'simple' | 'master'>('simple')
 const sessionSize = 10
+const deckMastery = ref<DeckMastery | null>(null)
 
 // Pending changes state
 const hasPendingChanges = ref<boolean>(false)
@@ -39,6 +42,10 @@ const isOwner = computed(() => deck.value?.userId === authStore.userId)
 
 onMounted(async () => {
     await deckStore.fetchDeck(deckId)
+    // Fetch mastery for owner's deck
+    if (deck.value?.userId === authStore.userId) {
+        deckMastery.value = await progressStore.fetchDeckMastery(deckId)
+    }
 })
 
 const deck = computed<Deck | null>(() => deckStore.currentDeck)
@@ -262,10 +269,10 @@ const handleClone = async (): Promise<void> => {
         </div>
 
         <div v-else-if="deck">
-            <div class="flex justify-between items-start mb-8">
-                <div>
-                    <div class="flex items-center gap-3 mb-2">
-                        <h1 class="text-3xl font-bold text-foreground">{{ deck.title }}</h1>
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6 sm:mb-8">
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h1 class="text-2xl sm:text-3xl font-bold text-foreground">{{ deck.title }}</h1>
                         <!-- Ownership & visibility badges -->
                         <span v-if="isOwner"
                             class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
@@ -304,41 +311,44 @@ const handleClone = async (): Promise<void> => {
                         </button>
                     </div>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 w-full sm:w-auto">
                     <!-- Clone button (non-owners) -->
-                    <button v-if="!isOwner" @click="handleClone" class="btn btn-primary">
+                    <button v-if="!isOwner" @click="handleClone" class="btn btn-primary flex-1 sm:flex-none">
                         Clone to Study
                     </button>
-                    <button @click="$router.back()" class="btn btn-secondary">
+                    <button @click="$router.back()" class="btn btn-secondary flex-1 sm:flex-none">
                         Back to List
                     </button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                 <!-- Lexemes List -->
                 <div class="card">
-                    <h2 class="text-2xl font-semibold mb-4 text-foreground">Lexemes ({{ deck.lexemes.length }})</h2>
-                    <div class="max-h-[500px] overflow-y-auto flex flex-col gap-3">
+                    <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Lexemes ({{ deck.lexemes.length
+                        }})</h2>
+                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col gap-2 sm:gap-3">
                         <div v-for="(lexeme, index) in deck.lexemes" :key="index"
-                            class="bg-secondary p-4 rounded-lg grid gap-4 items-center"
-                            :class="isOwner ? 'grid-cols-[1fr_2fr_auto_auto]' : 'grid-cols-[1fr_2fr_auto]'">
+                            class="bg-secondary p-3 sm:p-4 rounded-lg flex flex-col sm:grid gap-2 sm:gap-4 items-start sm:items-center"
+                            :class="isOwner ? 'sm:grid-cols-[1fr_2fr_auto_auto]' : 'sm:grid-cols-[1fr_2fr_auto]'">
                             <div class="font-semibold text-foreground">{{ lexeme.term }}</div>
-                            <div class="text-muted-foreground">{{ lexeme.meaning }}</div>
-                            <div class="bg-border px-3 py-1 rounded-full text-sm">{{ lexeme.POS }}</div>
-                            <button v-if="isOwner" @click="handleRemoveLexeme(lexeme.term)"
-                                class="text-destructive text-2xl cursor-pointer p-1 rounded hover:bg-destructive/10 transition-all"
-                                title="Remove word" :disabled="hasPendingChanges">
-                                ×
-                            </button>
+                            <div class="text-sm text-muted-foreground">{{ lexeme.meaning }}</div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <div class="bg-border px-3 py-1 rounded-full text-xs sm:text-sm">{{ lexeme.POS }}</div>
+                                <button v-if="isOwner" @click="handleRemoveLexeme(lexeme.term)"
+                                    class="ml-auto sm:ml-0 text-destructive text-2xl cursor-pointer p-1 rounded hover:bg-destructive/10 transition-all"
+                                    title="Remove word" :disabled="hasPendingChanges">
+                                    ×
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Pending Changes Preview -->
                 <div v-if="hasPendingChanges" class="card border-2 border-primary">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-semibold text-foreground">Pending Changes</h2>
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+                        <h2 class="text-xl sm:text-2xl font-semibold text-foreground">Pending Changes</h2>
                         <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
                             {{ pendingAction === 'add' ? 'Adding' : pendingAction === 'remove' ? 'Removing' : 'Editing'
                             }}
@@ -353,7 +363,7 @@ const handleClone = async (): Promise<void> => {
                         </h3>
                         <div class="flex flex-col gap-2 max-h-92 overflow-y-auto">
                             <div v-for="(lexeme, index) in pendingRemovals" :key="'remove-' + index"
-                                class="bg-destructive/10 border border-destructive/30 p-3 rounded-lg grid grid-cols-[1fr_2fr_auto] gap-3 items-center">
+                                class="bg-destructive/10 border border-destructive/30 p-3 rounded-lg flex flex-col sm:grid sm:grid-cols-[1fr_2fr_auto] gap-1 sm:gap-3 sm:items-center">
                                 <div class="font-semibold text-destructive">{{ lexeme.term }}</div>
                                 <div class="text-destructive/70">{{ lexeme.meaning }}</div>
                                 <div class="bg-destructive/20 px-2 py-0.5 rounded-full text-xs text-destructive">{{
@@ -370,7 +380,7 @@ const handleClone = async (): Promise<void> => {
                         </h3>
                         <div class="flex flex-col gap-2 max-h-92 overflow-y-auto">
                             <div v-for="(lexeme, index) in pendingAdditions" :key="'add-' + index"
-                                class="bg-green-500/10 border border-green-500/30 p-3 rounded-lg grid grid-cols-[1fr_2fr_auto] gap-3 items-center">
+                                class="bg-green-500/10 border border-green-500/30 p-3 rounded-lg flex flex-col sm:grid sm:grid-cols-[1fr_2fr_auto] gap-1 sm:gap-3 sm:items-center">
                                 <div class="font-semibold text-green-700">{{ lexeme.term }}</div>
                                 <div class="text-green-600/70">{{ lexeme.meaning }}</div>
                                 <div class="bg-green-500/20 px-2 py-0.5 rounded-full text-xs text-green-700">{{
@@ -380,7 +390,7 @@ const handleClone = async (): Promise<void> => {
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="flex gap-3 pt-4 border-t border-border">
+                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-border">
                         <button @click="undoChanges" class="btn btn-secondary flex-1">
                             ✕ Undo
                         </button>
@@ -392,7 +402,7 @@ const handleClone = async (): Promise<void> => {
 
                 <!-- Edit Deck (only show when no pending changes and user is owner) -->
                 <div v-if="!hasPendingChanges && isOwner" class="card">
-                    <h2 class="text-2xl font-semibold mb-4 text-foreground">Edit Deck with AI</h2>
+                    <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Edit Deck with AI</h2>
                     <p class="text-muted-foreground text-sm mb-4 leading-relaxed">
                         Tell the AI how to modify your deck. Examples:<br />
                         • "Add 10 more common adjectives"<br />
@@ -418,20 +428,71 @@ const handleClone = async (): Promise<void> => {
                 {{ editError }}
             </div>
 
+            <!-- Deck Mastery Progress (owner only) -->
+            <div v-if="isOwner && deckMastery" class="card mb-4 sm:mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl sm:text-2xl font-semibold text-foreground">Deck Mastery</h2>
+                    <span class="text-2xl font-bold" :class="{
+                        'text-green-500': deckMastery.masteryPercent >= 80,
+                        'text-blue-500': deckMastery.masteryPercent >= 50 && deckMastery.masteryPercent < 80,
+                        'text-yellow-500': deckMastery.masteryPercent >= 25 && deckMastery.masteryPercent < 50,
+                        'text-orange-500': deckMastery.masteryPercent < 25
+                    }">
+                        {{ deckMastery.masteryPercent }}%
+                    </span>
+                </div>
+
+                <!-- Progress bar -->
+                <div class="w-full h-3 bg-border rounded-full overflow-hidden mb-4">
+                    <div class="h-full bg-linear-to-r transition-all duration-700 rounded-full" :class="{
+                        'from-green-400 to-emerald-500': deckMastery.masteryPercent >= 80,
+                        'from-blue-400 to-cyan-500': deckMastery.masteryPercent >= 50 && deckMastery.masteryPercent < 80,
+                        'from-yellow-400 to-orange-500': deckMastery.masteryPercent >= 25 && deckMastery.masteryPercent < 50,
+                        'from-orange-400 to-red-400': deckMastery.masteryPercent < 25
+                    }" :style="{ width: deckMastery.masteryPercent + '%' }">
+                    </div>
+                </div>
+
+                <!-- Mastery breakdown -->
+                <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center text-xs">
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-muted-foreground">{{ deckMastery.masteryBreakdown.new }}
+                        </div>
+                        <div class="text-muted-foreground">New</div>
+                    </div>
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-orange-500">{{ deckMastery.masteryBreakdown.learning }}</div>
+                        <div class="text-muted-foreground">Learning</div>
+                    </div>
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-yellow-500">{{ deckMastery.masteryBreakdown.familiar }}</div>
+                        <div class="text-muted-foreground">Familiar</div>
+                    </div>
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-blue-500">{{ deckMastery.masteryBreakdown.proficient }}</div>
+                        <div class="text-muted-foreground">Proficient</div>
+                    </div>
+                    <div class="p-2 bg-secondary rounded-lg">
+                        <div class="text-lg font-bold text-green-500">{{ deckMastery.masteryBreakdown.mastered }}</div>
+                        <div class="text-muted-foreground">Mastered</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Study Flashcards -->
             <div class="card text-center">
-                <h2 class="text-2xl font-semibold mb-4 text-foreground">Study Flashcards</h2>
-                <p class="text-muted-foreground text-sm mb-6">
+                <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Study Flashcards</h2>
+                <p class="text-muted-foreground text-sm mb-4 sm:mb-6">
                     Choose your mode and start studying with spaced repetition
                 </p>
 
                 <!-- Mode Selection -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <label class="cursor-pointer">
                         <input type="radio" v-model="selectedMode" value="simple" class="hidden peer" />
                         <div
-                            class="bg-secondary p-6 rounded-lg border-2 border-border transition-all peer-checked:border-primary peer-checked:bg-primary/5">
-                            <h3 class="text-xl font-semibold mb-2 text-foreground">Simple Mode</h3>
+                            class="bg-secondary p-4 sm:p-6 rounded-lg border-2 border-border transition-all peer-checked:border-primary peer-checked:bg-primary/5">
+                            <h3 class="text-lg sm:text-xl font-semibold mb-2 text-foreground">Simple Mode</h3>
                             <p class="text-muted-foreground text-sm">Direct meaning recall questions</p>
                         </div>
                     </label>
@@ -439,8 +500,8 @@ const handleClone = async (): Promise<void> => {
                     <label class="cursor-pointer">
                         <input type="radio" v-model="selectedMode" value="master" class="hidden peer" />
                         <div
-                            class="bg-secondary p-6 rounded-lg border-2 border-border transition-all peer-checked:border-primary peer-checked:bg-primary/5">
-                            <h3 class="text-xl font-semibold mb-2 text-foreground">Master Mode</h3>
+                            class="bg-secondary p-4 sm:p-6 rounded-lg border-2 border-border transition-all peer-checked:border-primary peer-checked:bg-primary/5">
+                            <h3 class="text-lg sm:text-xl font-semibold mb-2 text-foreground">Master Mode</h3>
                             <p class="text-muted-foreground text-sm">Contextual usage and fill-in-the-blank</p>
                         </div>
                     </label>
@@ -454,7 +515,8 @@ const handleClone = async (): Promise<void> => {
                             words
                             less frequently.
                         </p>
-                        <button @click="studyWithSRS" class="btn btn-primary px-8 py-4 text-lg"
+                        <button @click="studyWithSRS"
+                            class="btn btn-primary px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto"
                             :disabled="generatingFlashcards">
                             {{ generatingFlashcards ? 'Generating...' : 'Start Studying' }}
                         </button>
@@ -463,7 +525,8 @@ const handleClone = async (): Promise<void> => {
                         <p class="text-muted-foreground mb-4">
                             🔒 Clone this deck to study with your own progress tracking
                         </p>
-                        <button @click="handleClone" class="btn btn-primary px-8 py-4 text-lg">
+                        <button @click="handleClone"
+                            class="btn btn-primary px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto">
                             Clone Deck to Study
                         </button>
                     </div>
