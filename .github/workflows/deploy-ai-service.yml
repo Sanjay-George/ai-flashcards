@@ -55,7 +55,6 @@ jobs:
         run: echo "Image tag is ${{ steps.define-tag.outputs.image_tag }}"
 
   deploy:
-    if: false
     needs: build
     environment: prod
     runs-on: ubuntu-latest
