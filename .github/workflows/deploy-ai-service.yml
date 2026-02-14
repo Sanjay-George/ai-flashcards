@@ -1,0 +1,79 @@
+name: Deploy AI service
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "ai-service/**/*"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  BACKEND_FOLDER: ai-service
+  AZURE_REGISTRY: craiflashcardsprod001
+  AZURE_RESOURCE_GROUP: rg-ai-flashcards-prod
+  AZURE_CONTAINER_APP_NAME: ''
+  ACR_REPO: app
+  ACR_IMAGE: ai-service
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.define-tag.outputs.image_tag }} # Expose as job output
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Determine Image Tag
+        id: define-tag
+        run: echo "image_tag=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Print tag for debug
+        run: echo "Image tag=${{ steps.define-tag.outputs.image_tag }}"
+
+      - name: Build image with ACR
+        id: build-acr
+        uses: azure/acr-build@v1
+        with:
+          service_principal: ${{ secrets.AZ_GITHUB_SP_CLIENT_ID }}
+          service_principal_password: ${{ secrets.AZ_GITHUB_SP_PASSWORD }}
+          tenant: ${{ secrets.AZ_GITHUB_SP_TENANT_ID}}
+          registry: ${{ env.AZURE_REGISTRY }}
+          repository: ${{ env.ACR_REPO }}
+          image: ${{ env.ACR_IMAGE }}
+          git_access_token: ${{ secrets.GITHUB_TOKEN }}
+          folder: ${{ env.BACKEND_FOLDER }}
+          dockerfile: ./Dockerfile
+          branch: ${{ github.ref_name || 'develop' }} 
+          tag: ${{ steps.define-tag.outputs.image_tag }}
+
+      - name: Debug image tag
+        run: echo "Image tag is ${{ steps.define-tag.outputs.image_tag }}"
+
+  deploy:
+    if: false
+    needs: build
+    environment: prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print tag for debug
+        run: echo "Image tag=${{ needs.build.outputs.image_tag }}"
+        
+      - name: Log in to Azure
+        uses: Azure/login@v2.3.0
+        with:
+          client-id: ${{ secrets.AZ_GITHUB_SP_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZ_GITHUB_SP_TENANT_ID}}
+          subscription-id: ${{ secrets.AZ_FC_SUBSCRIPTION_ID }}
+
+      - name: Build and deploy Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          acrName: ${{ env.AZURE_REGISTRY }}
+          containerAppName: ${{ env.AZURE_CONTAINER_APP_NAME }}
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.AZURE_REGISTRY }}.azurecr.io/${{ env.ACR_REPO }}/${{ env.ACR_IMAGE }}:${{ needs.build.outputs.image_tag }}
