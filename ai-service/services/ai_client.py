@@ -28,7 +28,7 @@ class AIClient:
             api_key=api_key,
             azure_deployment=deployment,
             api_version=api_version,
-            temperature=0.7,
+            temperature=0,
             model_kwargs={"response_format": {"type": "json_object"}}
         )
 
