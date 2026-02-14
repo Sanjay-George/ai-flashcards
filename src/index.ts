@@ -11,6 +11,7 @@ dotenv.config();
 const app = express();
 
 // Middleware
+// TODO: Restrict CORS origins in production
 app.use(cors());
 app.use(express.json());
 

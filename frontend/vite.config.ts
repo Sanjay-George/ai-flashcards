@@ -14,17 +14,7 @@ export default defineConfig(({ mode }) => {
             }
         },
         server: {
-            port: 9050,
-            proxy: {
-                '/api': {
-                    target: `${env.VITE_BACKEND_URL || 'http://localhost:9051'}`,
-                    changeOrigin: true
-                },
-                '/ai': {
-                    target: `${env.VITE_AI_SERVICE_URL || 'http://localhost:9052'}`,
-                    changeOrigin: true
-                }
-            }
+            port: 9050
         }
     }
 })

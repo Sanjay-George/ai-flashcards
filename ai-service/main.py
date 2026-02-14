@@ -10,6 +10,7 @@ app = FastAPI(title="Flashcards AI Service", version="1.0.0")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
+    # TODO: Restrict origins in production
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],

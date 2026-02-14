@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/authStore'
 
 // Backend API client (decks, flashcards)
 const api: AxiosInstance = axios.create({
-    baseURL: '/api',
+    baseURL: `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9051'}/api`,
     headers: {
         'Content-Type': 'application/json'
     }
@@ -11,7 +11,7 @@ const api: AxiosInstance = axios.create({
 
 // AI Service client (direct to AI service)
 export const aiApi: AxiosInstance = axios.create({
-    baseURL: '/ai',
+    baseURL: `${import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:9052'}/ai`,
     headers: {
         'Content-Type': 'application/json'
     }
