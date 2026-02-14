@@ -15,7 +15,7 @@ env:
   BACKEND_FOLDER: ai-service
   AZURE_REGISTRY: craiflashcardsprod001
   AZURE_RESOURCE_GROUP: rg-ai-flashcards-prod
-  AZURE_CONTAINER_APP_NAME: ''
+  AZURE_CONTAINER_APP_NAME: app-ai-service-prod
   ACR_REPO: app
   ACR_IMAGE: ai-service-2
 
