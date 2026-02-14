@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
 import type { CreateDeckResponse, Lexeme } from '../types/index'
 
 const router = useRouter()
-const route = useRoute()
 const deckStore = useDeckStore()
 
 // Deck data from route state or fallback

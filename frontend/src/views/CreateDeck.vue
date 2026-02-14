@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
-import type { CreateDeckResponse } from '../types/index'
 
 const router = useRouter()
 const deckStore = useDeckStore()
@@ -61,6 +60,7 @@ const generateDeck = async () => {
         router.push({
             name: 'EditGeneratedDeck',
             state: {
+                // @ts-expect-error - passing object directly in state, not ideal but works for now
                 generatedDeck: result,
                 initialMessage: userMessage.value + (extractedText.value ? '\n\nExtracted text: ' + extractedText.value : '')
             }
@@ -72,32 +72,11 @@ const generateDeck = async () => {
     }
 }
 
-const saveDeck = async () => {
-    // No longer needed - deck is saved from EditGeneratedDeck page
-}
-
 const resetForm = () => {
     userMessage.value = ''
     extractedText.value = ''
     uploadedImage.value = null
     error.value = ''
-}
-
-// Language display helper
-const languageNames: Record<string, string> = {
-    de: 'German',
-    es: 'Spanish',
-    fr: 'French',
-    it: 'Italian',
-    pt: 'Portuguese',
-    nl: 'Dutch',
-    ja: 'Japanese',
-    zh: 'Chinese',
-    ko: 'Korean',
-}
-
-const getLanguageName = (code: string): string => {
-    return languageNames[code] || code.toUpperCase()
 }
 </script>
 

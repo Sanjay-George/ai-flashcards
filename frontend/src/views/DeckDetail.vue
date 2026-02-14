@@ -235,7 +235,7 @@ const handleVisibilityToggle = async (): Promise<void> => {
     try {
         await deckStore.toggleVisibility(deckId, !deck.value.isPublic)
     } catch (e: unknown) {
-        editError.value = e.message || 'Failed to update visibility'
+        editError.value = (e as Error)?.message || 'Failed to update visibility'
     }
 }
 
@@ -318,8 +318,9 @@ const handleClone = async (): Promise<void> => {
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <!-- Lexemes List -->
                 <div class="card">
-                    <h2 class="text-2xl font-semibold mb-4 text-foreground">Lexemes ({{ deck.lexemes.length }})</h2>
-                    <div class="max-h-[500px] overflow-y-auto flex flex-col gap-3">
+                    <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Lexemes ({{ deck.lexemes.length
+                        }})</h2>
+                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col gap-2 sm:gap-3">
                         <div v-for="(lexeme, index) in deck.lexemes" :key="index"
                             class="bg-secondary p-4 rounded-lg grid gap-4 items-center"
                             :class="isOwner ? 'grid-cols-[1fr_2fr_auto_auto]' : 'grid-cols-[1fr_2fr_auto]'">
