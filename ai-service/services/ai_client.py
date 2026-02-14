@@ -1,7 +1,6 @@
 import os
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from typing import Optional
 import dotenv
 
 dotenv.load_dotenv()
