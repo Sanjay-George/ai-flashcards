@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.gitignore
+
+
+.venv
+**/__pycache__/
+
+**/*.joblib
+**/*.pkl
+**/.md
