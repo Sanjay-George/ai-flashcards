@@ -4,6 +4,7 @@ declare global {
     namespace NodeJS {
         interface ProcessEnv {
             PORT?: string;
+            MONGODB_URI?: string;
             MONGO_USER?: string;
             MONGO_PASSWORD?: string;
             MONGO_HOST?: string;
@@ -13,7 +14,6 @@ declare global {
             FIREBASE_PROJECT_ID?: string;
             FIREBASE_CLIENT_EMAIL?: string;
             FIREBASE_PRIVATE_KEY?: string;
-            AI_SERVICE_URL?: string;
             NODE_ENV?: 'development' | 'production' | 'test';
         }
     }

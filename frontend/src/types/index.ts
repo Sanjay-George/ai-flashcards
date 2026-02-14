@@ -141,3 +141,62 @@ export interface FlashcardStoreState {
     loading: boolean;
     error: string | null;
 }
+
+// Progress & Gamification Types
+export interface Milestone {
+    level: number;
+    title: string;
+    xpRequired: number;
+    emoji: string;
+    description: string;
+}
+
+export interface SessionRecord {
+    deckId: string;
+    deckTitle: string;
+    cardsStudied: number;
+    avgRating: number;
+    xpEarned: number;
+    completedAt: string;
+}
+
+export interface MasteryBreakdown {
+    new: number;
+    learning: number;
+    familiar: number;
+    proficient: number;
+    mastered: number;
+}
+
+export interface UserProgressProfile {
+    totalXP: number;
+    level: number;
+    currentMilestone: Milestone;
+    nextMilestone: Milestone | null;
+    xpToNextLevel: number;
+    totalSessionsCompleted: number;
+    totalCardsStudied: number;
+    currentStreak: number;
+    longestStreak: number;
+    recentSessions: SessionRecord[];
+    milestones: Milestone[];
+}
+
+export interface DeckMastery {
+    deckId: string;
+    masteryPercent: number;
+    masteryBreakdown: MasteryBreakdown;
+    totalLexemes: number;
+}
+
+export interface SessionCompleteResponse {
+    xpEarned: number;
+    totalXP: number;
+    level: number;
+    currentMilestone: Milestone;
+    nextMilestone: Milestone | null;
+    xpToNextLevel: number;
+    leveledUp: boolean;
+    currentStreak: number;
+    longestStreak: number;
+}

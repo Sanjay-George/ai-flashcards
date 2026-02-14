@@ -5,8 +5,6 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
     // Load env file from frontend directory
     const env = loadEnv(mode, path.resolve(__dirname, '.'), '')
-    const backendPort = env.VITE_BACKEND_PORT || '9051'
-    const aiServicePort = env.VITE_AI_SERVICE_PORT || '9052'
 
     return {
         plugins: [vue()],
@@ -19,11 +17,11 @@ export default defineConfig(({ mode }) => {
             port: 9050,
             proxy: {
                 '/api': {
-                    target: `http://localhost:${backendPort}`,
+                    target: `${env.VITE_BACKEND_URL || 'http://localhost:9051'}`,
                     changeOrigin: true
                 },
                 '/ai': {
-                    target: `http://localhost:${aiServicePort}`,
+                    target: `${env.VITE_AI_SERVICE_URL || 'http://localhost:9052'}`,
                     changeOrigin: true
                 }
             }

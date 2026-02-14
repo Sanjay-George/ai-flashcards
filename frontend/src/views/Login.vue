@@ -70,10 +70,10 @@ const handleGoogleSignIn = async () => {
 </script>
 
 <template>
-    <div class="min-h-[80vh] flex items-center justify-center">
-        <div class="card max-w-md w-full p-8">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-foreground mb-2">
+    <div class="min-h-[70vh] sm:min-h-[80vh] flex items-center justify-center px-4 sm:px-0">
+        <div class="card max-w-md w-full p-5 sm:p-8">
+            <div class="text-center mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-foreground mb-2">
                     {{ isSignUp ? 'Create Account' : 'Welcome Back' }}
                 </h1>
                 <p class="text-muted-foreground">
@@ -83,7 +83,7 @@ const handleGoogleSignIn = async () => {
 
             <!-- Google Sign In -->
             <button @click="handleGoogleSignIn" :disabled="isSubmitting"
-                class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-border rounded-lg bg-card hover:bg-secondary transition-colors mb-6">
+                class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-border rounded-lg bg-card hover:bg-secondary transition-colors mb-4 sm:mb-6">
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

@@ -6,9 +6,8 @@ AI-powered flashcard application for language learning with spaced repetition.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) >= 1.0
-- [Node.js](https://nodejs.org) >= 18
-- [Python](https://python.org) >= 3.9
+- [Node.js](https://nodejs.org) >= 21
+- [Python](https://python.org) >= 3.11
 - [Docker](https://docker.com) (for MongoDB)
 - Azure OpenAI API credentials
 

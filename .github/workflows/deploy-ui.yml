@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'develop'
+      - 'main'
     paths:
       - 'frontend/**/*'
 
@@ -57,3 +57,4 @@ jobs:
           app_location: ${{ env.FRONTEND_DIR }}/dist
           output_location: ''
           skip_app_build: true
+

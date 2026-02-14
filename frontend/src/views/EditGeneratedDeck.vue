@@ -221,15 +221,15 @@ const previewLexemes = computed(() => {
 
 <template>
     <div class="max-w-5xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-foreground">Edit Generated Deck</h1>
-            <button @click="goBack" class="btn btn-secondary">← Back to Create</button>
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
+            <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Edit Generated Deck</h1>
+            <button @click="goBack" class="btn btn-secondary w-full sm:w-auto">← Back to Create</button>
         </div>
 
-        <div v-if="generatedDeck" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div v-if="generatedDeck" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <!-- Left Column: Deck Info & Lexemes -->
             <div class="card">
-                <h2 class="text-2xl font-semibold mb-4 text-foreground">Deck Preview</h2>
+                <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Deck Preview</h2>
 
                 <div class="form-group">
                     <label>Deck Title</label>
@@ -251,14 +251,14 @@ const previewLexemes = computed(() => {
 
                 <div class="form-group">
                     <label>Lexemes ({{ previewLexemes.length }})</label>
-                    <div class="max-h-[500px] overflow-y-auto flex flex-col gap-3">
+                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col gap-2 sm:gap-3">
                         <div v-for="(lexeme, index) in previewLexemes" :key="`${lexeme.term}-${index}`" :class="[
-                            'bg-card p-4 rounded-lg grid grid-cols-[1fr_2fr_auto_auto] gap-3 items-center',
+                            'bg-card p-3 sm:p-4 rounded-lg flex flex-col sm:grid sm:grid-cols-[1fr_2fr_auto_auto] gap-2 sm:gap-3 items-start sm:items-center',
                             pendingAdditions.some(l => l.term === lexeme.term) ? 'border-2 border-green-500' : '',
                             pendingRemovals.some(l => l.term === lexeme.term) ? 'border-2 border-red-500 opacity-50' : ''
                         ]">
-                            <div class="font-semibold text-foreground text-lg">{{ lexeme.term }}</div>
-                            <div class="text-muted-foreground">{{ lexeme.meaning }}</div>
+                            <div class="font-semibold text-foreground text-base sm:text-lg">{{ lexeme.term }}</div>
+                            <div class="text-sm text-muted-foreground">{{ lexeme.meaning }}</div>
                             <div class="bg-secondary px-3 py-1 rounded-full text-sm text-secondary-foreground">
                                 {{ lexeme.POS }}
                             </div>
@@ -278,16 +278,16 @@ const previewLexemes = computed(() => {
 
             <!-- Right Column: AI Chat Interface -->
             <div class="card">
-                <h2 class="text-2xl font-semibold mb-4 text-foreground">AI Assistant</h2>
+                <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">AI Assistant</h2>
                 <p class="text-muted-foreground mb-4">
                     Chat with the AI to refine your deck. You can ask to add, remove, or edit lexemes.
                 </p>
 
                 <!-- Chat History -->
-                <div class="mb-4 bg-secondary rounded-lg p-4 max-h-[300px] overflow-y-auto">
+                <div class="mb-4 bg-secondary rounded-lg p-3 sm:p-4 max-h-62.5 sm:max-h-75 overflow-y-auto">
                     <div v-for="(message, index) in messageHistory" :key="index" :class="[
-                        'mb-3 p-3 rounded-lg',
-                        message.role === 'user' ? 'bg-primary text-primary-foreground ml-8' : 'bg-card text-foreground mr-8'
+                        'mb-3 p-3 rounded-lg text-sm',
+                        message.role === 'user' ? 'bg-primary text-primary-foreground ml-4 sm:ml-8' : 'bg-card text-foreground mr-4 sm:mr-8'
                     ]">
                         <div class="text-xs font-semibold mb-1 opacity-70">
                             {{ message.role === 'user' ? '👤 You' : '🤖 AI' }}

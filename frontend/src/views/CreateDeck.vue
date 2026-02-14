@@ -82,12 +82,13 @@ const resetForm = () => {
 
 <template>
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold mb-8 text-foreground">Create New Deck</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-foreground">Create New Deck</h1>
 
         <div class="card">
             <div>
-                <h2 class="text-2xl font-semibold mb-4 text-foreground">Step 1: Describe What You Want to Learn</h2>
-                <p class="text-muted-foreground mb-6 leading-relaxed">
+                <h2 class="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-foreground">Step 1: Describe What You
+                    Want to Learn</h2>
+                <p class="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
                     Tell the AI what you want to learn, or upload an image with text to extract.
                     For example: "I want to learn the most common verbs in Spanish" or
                     "Create flashcards for French food vocabulary"
@@ -131,12 +132,13 @@ const resetForm = () => {
                         rows="4" :disabled="isGenerating"></textarea>
                 </div>
 
-                <div class="flex gap-4">
-                    <button @click="generateDeck" class="btn btn-primary"
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <button @click="generateDeck" class="btn btn-primary w-full sm:w-auto"
                         :disabled="isGenerating || !userMessage.trim()">
                         {{ isGenerating ? 'Generating...' : '✨ Generate Deck with AI' }}
                     </button>
-                    <button v-if="userMessage || uploadedImage" @click="resetForm" class="btn btn-secondary">
+                    <button v-if="userMessage || uploadedImage" @click="resetForm"
+                        class="btn btn-secondary w-full sm:w-auto">
                         🔄 Reset
                     </button>
                 </div>
