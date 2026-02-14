@@ -1,0 +1,35 @@
+# Node and build artifacts
+node_modules
+dist
+build
+*.log
+
+# Environment and credentials
+.env
+.env.*
+firebase-adminsdk.json
+tmp
+/tmp
+
+# Version control and IDE files
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+.vscode
+.idea
+
+# OS and misc
+.DS_Store
+*.swp
+
+# Tests and docs
+__tests__/
+coverage/
+*.spec.ts
+*.test.ts
+docs/
+
+# Other folders
+ai-service
+frontend
