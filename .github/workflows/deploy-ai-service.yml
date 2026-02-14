@@ -57,7 +57,7 @@ jobs:
   deploy:
     if: false
     needs: build
-    environment: development
+    environment: prod
     runs-on: ubuntu-latest
     steps:
       - name: Print tag for debug
