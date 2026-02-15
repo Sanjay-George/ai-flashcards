@@ -48,6 +48,24 @@ const DeckSchema = new Schema<IDeck>({
 
 DeckSchema.pre<IDeck>('save', function () {
     this.updatedAt = new Date();
+
+    // Deduplicate lexemes by term (case-insensitive)
+    // Keeps the first occurrence, preserving SRS data for existing entries
+    if (this.lexemes && this.lexemes.length > 0) {
+        const seen = new Set<string>();
+        const unique: ILexeme[] = [];
+        for (const lexeme of this.lexemes) {
+            const normalized = lexeme.term.trim().toLowerCase();
+            if (!seen.has(normalized)) {
+                seen.add(normalized);
+                unique.push(lexeme);
+            }
+        }
+        if (unique.length < this.lexemes.length) {
+            console.log(`[Deck save] Removed ${this.lexemes.length - unique.length} duplicate lexeme(s) from deck "${this.title}"`);
+            this.lexemes = unique;
+        }
+    }
 });
 
 export const Deck = mongoose.model<IDeck>('Deck', DeckSchema);

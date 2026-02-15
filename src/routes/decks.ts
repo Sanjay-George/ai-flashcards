@@ -129,6 +129,17 @@ router.put('/:id', authMiddleware, ownerOnly, async (req: AuthRequest, res: Resp
         // Don't allow changing userId
         delete body.userId;
 
+        // Deduplicate lexemes if present in the update
+        if (body.lexemes && body.lexemes.length > 0) {
+            const seen = new Set<string>();
+            body.lexemes = body.lexemes.filter(lexeme => {
+                const normalized = lexeme.term.trim().toLowerCase();
+                if (seen.has(normalized)) return false;
+                seen.add(normalized);
+                return true;
+            });
+        }
+
         const updatedDeck = await Deck.findByIdAndUpdate(
             req.params.id,
             body,
