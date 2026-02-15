@@ -428,9 +428,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
                             <div class="text-xs sm:text-sm font-semibold mb-1 opacity-70">
                                 {{ message.role === 'user' ? '👤 You' : '🤖 Tutor' }}
                             </div>
-                            <!-- User messages as plain text -->
                             <div v-if="message.role === 'user'" class="whitespace-pre-wrap">{{ message.content }}</div>
-                            <!-- AI assistant messages with markdown rendering -->
                             <div v-else class="markdown-content" v-html="renderMarkdown(message.content)"></div>
                         </div>
                     </div>

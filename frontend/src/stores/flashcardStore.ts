@@ -79,21 +79,6 @@ export const useFlashcardStore = defineStore('flashcard', () => {
         }
     }
 
-    // Rate flashcard
-    const rateFlashcard = async (id: string, rating: number): Promise<Flashcard> => {
-        try {
-            const response = await api.post<Flashcard>(`/flashcards/${id}/rate`, { rating })
-            const index = flashcards.value.findIndex((f: Flashcard) => f._id === id)
-            if (index !== -1) {
-                flashcards.value[index] = response.data
-            }
-            return response.data
-        } catch (e: any) {
-            error.value = e.message
-            throw e
-        }
-    }
-
     const setSessionFlashcards = (cards: Flashcard[]) => {
         sessionFlashcards.value = cards
     }
@@ -111,7 +96,6 @@ export const useFlashcardStore = defineStore('flashcard', () => {
         fetchDueFlashcards,
         generateFlashcards,
         saveFlashcards,
-        rateFlashcard,
         setSessionFlashcards,
         clearSessionFlashcards
     }
