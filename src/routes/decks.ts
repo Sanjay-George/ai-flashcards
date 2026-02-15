@@ -174,33 +174,77 @@ router.delete('/:id/lexemes/:term', authMiddleware, ownerOnly, async (req: AuthR
 });
 
 // Get lexemes due for review (owner only - SRS is personal)
+// Rule-based selection:
+// 1. Priority: First-time words (never seen, repetitions === 0) - shuffled for variety
+// 2. Priority: Due for review (nextReviewDate <= now) - sorted by date, easeFactor, repetitions
+// 3. Fallback: Random selection from remaining lexemes
 router.get('/:id/lexemes/due', authMiddleware, ownerOnly, async (req: AuthRequest, res: Response) => {
     try {
         const deck = (req as any).deck as HydratedDocument<IDeck>;
         const limit = parseInt(req.query.limit as string || '10');
         const now = new Date();
 
-        // Sort lexemes by due date and priority
-        const sortedLexemes = [...deck.lexemes].sort((a: any, b: any) => {
-            const aDate = new Date(a.nextReviewDate || 0);
-            const bDate = new Date(b.nextReviewDate || 0);
-            const aDue = aDate <= now;
-            const bDue = bDate <= now;
+        const selectedLexemes: any[] = [];
+        const allLexemes = [...deck.lexemes];
 
-            // Due cards come first
-            if (aDue && !bDue) return -1;
-            if (!aDue && bDue) return 1;
+        // Rule 1: First-time words (never seen before)
+        const firstTimeWords = allLexemes.filter((l: any) =>
+            (l.repetitions || 0) === 0
+        );
 
-            // Among due cards, sort by date (oldest first)
-            if (aDue && bDue) {
-                return aDate.getTime() - bDate.getTime();
-            }
+        // Shuffle first-time words for variety
+        const shuffledFirstTime = firstTimeWords.sort(() => Math.random() - 0.5);
+        selectedLexemes.push(...shuffledFirstTime.slice(0, limit));
 
-            // Among not-due cards, prioritize by repetitions (lowest first = hardest)
+        // If we have enough, return
+        if (selectedLexemes.length >= limit) {
+            res.json(selectedLexemes.slice(0, limit));
+            return;
+        }
+
+        // Rule 2: Due for review (based on SRS data)
+        const dueWords = allLexemes.filter((l: any) => {
+            const nextReview = new Date(l.nextReviewDate || 0);
+            const isFirstTime = (l.repetitions || 0) === 0;
+            return !isFirstTime && nextReview <= now;
+        });
+
+        // Sort due words by priority:
+        // - Earlier review dates first (most overdue)
+        // - Lower ease factor (harder cards)
+        // - Lower repetitions (less mastered)
+        const sortedDueWords = dueWords.sort((a: any, b: any) => {
+            const aDate = new Date(a.nextReviewDate || 0).getTime();
+            const bDate = new Date(b.nextReviewDate || 0).getTime();
+
+            if (aDate !== bDate) return aDate - bDate;
+
+            const aEase = a.easeFactor || 2.5;
+            const bEase = b.easeFactor || 2.5;
+            if (aEase !== bEase) return aEase - bEase;
+
             return (a.repetitions || 0) - (b.repetitions || 0);
         });
 
-        res.json(sortedLexemes.slice(0, limit));
+        const remaining = limit - selectedLexemes.length;
+        selectedLexemes.push(...sortedDueWords.slice(0, remaining));
+
+        // If we have enough, return
+        if (selectedLexemes.length >= limit) {
+            res.json(selectedLexemes.slice(0, limit));
+            return;
+        }
+
+        // Rule 3: Fallback - random selection from remaining lexemes
+        const usedTerms = new Set(selectedLexemes.map((l: any) => l.term));
+        const remainingWords = allLexemes.filter((l: any) => !usedTerms.has(l.term));
+
+        // Shuffle remaining words
+        const shuffledRemaining = remainingWords.sort(() => Math.random() - 0.5);
+        const stillNeeded = limit - selectedLexemes.length;
+        selectedLexemes.push(...shuffledRemaining.slice(0, stillNeeded));
+
+        res.json(selectedLexemes.slice(0, limit));
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
