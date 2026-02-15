@@ -3,6 +3,18 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
 import type { CreateDeckResponse, Lexeme } from '../types/index'
+import { marked } from 'marked'
+
+// Configure marked for safe rendering
+marked.setOptions({
+    breaks: true,
+    gfm: true
+})
+
+// Helper function to render markdown
+const renderMarkdown = (text: string): string => {
+    return marked.parse(text) as string
+}
 
 const router = useRouter()
 const deckStore = useDeckStore()
@@ -292,7 +304,10 @@ const previewLexemes = computed(() => {
                         <div class="text-xs font-semibold mb-1 opacity-70">
                             {{ message.role === 'user' ? '👤 You' : '🤖 AI' }}
                         </div>
-                        <div class="text-sm">{{ message.content }}</div>
+                        <!-- User messages as plain text -->
+                        <div v-if="message.role === 'user'" class="text-sm">{{ message.content }}</div>
+                        <!-- AI assistant messages with markdown rendering -->
+                        <div v-else class="text-sm markdown-content" v-html="renderMarkdown(message.content)"></div>
                     </div>
                     <div v-if="messageHistory.length === 0" class="text-muted-foreground text-sm text-center py-4">
                         No conversation yet. Start by asking the AI to modify your deck!
@@ -352,5 +367,74 @@ const previewLexemes = computed(() => {
 .btn-sm {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
+}
+
+/* Markdown content styling */
+.markdown-content {
+    line-height: 1.6;
+}
+
+.markdown-content :deep(p) {
+    margin: 0.5em 0;
+}
+
+.markdown-content :deep(p:first-child) {
+    margin-top: 0;
+}
+
+.markdown-content :deep(p:last-child) {
+    margin-bottom: 0;
+}
+
+.markdown-content :deep(strong) {
+    font-weight: 600;
+    color: inherit;
+}
+
+.markdown-content :deep(em) {
+    font-style: italic;
+}
+
+.markdown-content :deep(code) {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    font-family: monospace;
+}
+
+.markdown-content :deep(pre) {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+    margin: 0.5em 0;
+}
+
+.markdown-content :deep(pre code) {
+    background-color: transparent;
+    padding: 0;
+}
+
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+}
+
+.markdown-content :deep(li) {
+    margin: 0.25em 0;
+}
+
+.markdown-content :deep(blockquote) {
+    border-left: 3px solid currentColor;
+    padding-left: 1em;
+    margin: 0.5em 0;
+    opacity: 0.8;
+}
+
+.markdown-content :deep(a) {
+    color: inherit;
+    text-decoration: underline;
 }
 </style>

@@ -85,6 +85,7 @@ class ChatRequest(BaseModel):
     answer: str
     lexeme: Optional[Lexeme] = None
     pattern: Optional[Pattern] = None
+    message_history: Optional[List[ChatMessage]] = None
 
 
 class ChatResponse(BaseModel):

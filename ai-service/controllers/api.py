@@ -168,7 +168,16 @@ async def chat_about_flashcard(request: ChatRequest, user=Depends(verify_firebas
             "pattern": request.pattern.dict() if request.pattern else None
         }
 
-        user_content = f"Context: {json.dumps(context)}\nUser question: {request.user_message}"
+        user_content = f"Context: {json.dumps(context)}"
+
+        # Add conversation history if provided
+        if request.message_history and len(request.message_history) > 0:
+            user_content += "\n\nPrevious conversation:\n"
+            for msg in request.message_history:
+                user_content += f"{msg.role}: {msg.content}\n"
+            user_content += "\n"
+
+        user_content += f"User question: {request.user_message}"
 
         response = await ai_client.generate(system_prompt, user_content, use_json_format=False)
         return ChatResponse(response=response)

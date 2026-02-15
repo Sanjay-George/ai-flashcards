@@ -6,6 +6,18 @@ import { useDeckStore } from '../stores/deckStore'
 import { useProgressStore } from '../stores/progressStore'
 import { aiApi } from '../services/api'
 import type { Flashcard, Deck, SessionCompleteResponse } from '../types/index'
+import { marked } from 'marked'
+
+// Configure marked for safe rendering
+marked.setOptions({
+    breaks: true,
+    gfm: true
+})
+
+// Helper function to render markdown
+const renderMarkdown = (text: string): string => {
+    return marked.parse(text) as string
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -19,9 +31,16 @@ const highestReviewedIndex = ref<number>(-1) // Track furthest reviewed card
 const showAnswer = ref<boolean>(false)
 const sessionComplete = ref<boolean>(false)
 const chatInput = ref<string>('')
-const chatAnswer = ref<string>('')
 const chatLoading = ref<boolean>(false)
 const chatError = ref<string>('')
+
+// Message history for conversation context
+interface ChatMessage {
+    role: 'user' | 'assistant'
+    content: string
+}
+
+const chatHistory = ref<ChatMessage[]>([])
 
 // Progress tracking
 const sessionRatings = ref<number[]>([])
@@ -87,7 +106,7 @@ const rateCard = async (rating: number): Promise<void> => {
 
     showAnswer.value = false
     chatInput.value = ''
-    chatAnswer.value = ''
+    chatHistory.value = [] // Clear chat history when moving to next card
 
     // Only rate if this is a new card (not reviewing a previous one)
     const isNewCard = currentIndex.value >= highestReviewedIndex.value
@@ -126,7 +145,7 @@ const goToPrevious = (): void => {
     if (canGoBack.value) {
         showAnswer.value = false
         chatInput.value = ''
-        chatAnswer.value = ''
+        chatHistory.value = [] // Clear chat history when navigating
         currentIndex.value--
     }
 }
@@ -135,7 +154,7 @@ const goToNext = (): void => {
     if (canGoForward.value) {
         showAnswer.value = false
         chatInput.value = ''
-        chatAnswer.value = ''
+        chatHistory.value = [] // Clear chat history when navigating
         currentIndex.value++
     }
 }
@@ -153,14 +172,21 @@ const goToDeck = (): void => {
 const askFlashcardQuestion = async (): Promise<void> => {
     if (!currentCard.value || !chatInput.value.trim()) return
 
+    const userMessage = chatInput.value.trim()
     chatLoading.value = true
     chatError.value = ''
-    chatAnswer.value = ''
+    chatInput.value = '' // Clear input immediately
 
     try {
+        // Add user message to history
+        chatHistory.value.push({
+            role: 'user',
+            content: userMessage
+        })
+
         const card = currentCard.value
         const response = await aiApi.post('/chat', {
-            user_message: chatInput.value.trim(),
+            user_message: userMessage,
             question: card.question,
             answer: card.answer,
             lexeme: card.lexeme || {
@@ -168,12 +194,19 @@ const askFlashcardQuestion = async (): Promise<void> => {
                 meaning: card.answer,
                 POS: card.pattern?.pos || 'unknown'
             },
-            pattern: card.pattern
+            pattern: card.pattern,
+            message_history: chatHistory.value.slice(0, -1) // Send history excluding the current message
         })
 
-        chatAnswer.value = response.data.response
+        // Add assistant response to history
+        chatHistory.value.push({
+            role: 'assistant',
+            content: response.data.response
+        })
     } catch (e: any) {
         chatError.value = e.message || 'Failed to get response'
+        // Remove the user message if there was an error
+        chatHistory.value.pop()
     } finally {
         chatLoading.value = false
     }
@@ -381,21 +414,42 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
                 <!-- Chat Section -->
                 <div class="mt-4 sm:mt-6 text-left bg-secondary p-3 sm:p-4 rounded-lg">
-                    <p class="font-semibold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">Ask a question about this
+                    <p class="font-semibold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">💬 Ask questions about
+                        this
                         card</p>
+
+                    <!-- Chat History -->
+                    <div v-if="chatHistory.length > 0"
+                        class="mb-3 bg-card rounded-lg p-2 sm:p-3 max-h-48 sm:max-h-60 overflow-y-auto border border-border">
+                        <div v-for="(message, index) in chatHistory" :key="index" :class="[
+                            'mb-2 p-2 sm:p-3 rounded-lg text-xs sm:text-sm',
+                            message.role === 'user' ? 'bg-primary text-primary-foreground ml-4 sm:ml-8' : 'bg-secondary text-foreground mr-4 sm:mr-8'
+                        ]">
+                            <div class="text-xs font-semibold mb-1 opacity-70">
+                                {{ message.role === 'user' ? '👤 You' : '🤖 Tutor' }}
+                            </div>
+                            <!-- User messages as plain text -->
+                            <div v-if="message.role === 'user'" class="whitespace-pre-wrap">{{ message.content }}</div>
+                            <!-- AI assistant messages with markdown rendering -->
+                            <div v-else class="markdown-content" v-html="renderMarkdown(message.content)"></div>
+                        </div>
+                    </div>
+
+                    <!-- Input Section -->
                     <div class="flex gap-2 items-center">
                         <input v-model="chatInput"
-                            class="flex-1 px-3 py-2.5 border border-input rounded-lg text-base sm:text-sm focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10"
-                            type="text" placeholder="e.g., How do I use this?" :disabled="chatLoading" />
-                        <button @click="askFlashcardQuestion" class="btn btn-secondary"
+                            class="flex-1 px-3 py-2.5 border border-input rounded-lg text-base sm:text-sm focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 bg-background"
+                            type="text" placeholder="e.g., How do I use this? Give me examples." :disabled="chatLoading"
+                            @keydown.enter="askFlashcardQuestion" />
+                        <button @click="askFlashcardQuestion" class="btn btn-secondary whitespace-nowrap"
                             :disabled="chatLoading || !chatInput.trim()">
                             {{ chatLoading ? 'Asking...' : 'Ask' }}
                         </button>
                     </div>
-                    <p v-if="chatError" class="text-destructive mt-2">{{ chatError }}</p>
-                    <div v-if="chatAnswer" class="mt-3 bg-card p-3 rounded-lg border border-border">
-                        {{ chatAnswer }}
-                    </div>
+                    <p v-if="chatError" class="text-destructive text-xs sm:text-sm mt-2">{{ chatError }}</p>
+                    <p v-if="!chatError && chatHistory.length === 0" class="text-muted-foreground text-xs mt-2 italic">
+                        Start a conversation about this flashcard! Press Enter to send.
+                    </p>
                 </div>
             </div>
         </div>
@@ -439,5 +493,74 @@ const askFlashcardQuestion = async (): Promise<void> => {
     .lg\:min-h-100 {
         min-height: 25rem;
     }
+}
+
+/* Markdown content styling */
+.markdown-content {
+    line-height: 1.6;
+}
+
+.markdown-content :deep(p) {
+    margin: 0.5em 0;
+}
+
+.markdown-content :deep(p:first-child) {
+    margin-top: 0;
+}
+
+.markdown-content :deep(p:last-child) {
+    margin-bottom: 0;
+}
+
+.markdown-content :deep(strong) {
+    font-weight: 600;
+    color: inherit;
+}
+
+.markdown-content :deep(em) {
+    font-style: italic;
+}
+
+.markdown-content :deep(code) {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    font-family: monospace;
+}
+
+.markdown-content :deep(pre) {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+    margin: 0.5em 0;
+}
+
+.markdown-content :deep(pre code) {
+    background-color: transparent;
+    padding: 0;
+}
+
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+}
+
+.markdown-content :deep(li) {
+    margin: 0.25em 0;
+}
+
+.markdown-content :deep(blockquote) {
+    border-left: 3px solid currentColor;
+    padding-left: 1em;
+    margin: 0.5em 0;
+    opacity: 0.8;
+}
+
+.markdown-content :deep(a) {
+    color: inherit;
+    text-decoration: underline;
 }
 </style>
