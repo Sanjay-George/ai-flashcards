@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useProgressStore } from './stores/progressStore'
