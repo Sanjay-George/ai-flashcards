@@ -40,9 +40,27 @@ async def create_deck(request: DeckCreateRequest, user=Depends(verify_firebase_t
 
         response = await ai_client.generate(system_prompt, user_content)
 
-        # Parse JSON response
         result = json.loads(response)
-        return DeckCreateResponse(**result)
+        deck = DeckCreateResponse(**result)
+
+        # Remove duplicate or irrelevant items from the response before parsing
+        unique_lexemes = []
+        seen_terms = set()
+        for lexeme in deck.lexemes:
+            if lexeme.term not in seen_terms:
+                unique_lexemes.append(lexeme)
+                seen_terms.add(lexeme.term)
+
+        print(
+            f"Unique lexemes extracted: {[lex.term for lex in unique_lexemes]}")
+
+        # Log any duplicates that were removed
+        if len(deck.lexemes) > len(unique_lexemes):
+            print(f"Duplicate lexemes: {deck.lexemes[len(unique_lexemes):]}")
+
+        deck.lexemes = unique_lexemes
+
+        return deck
 
     except json.JSONDecodeError as e:
         raise HTTPException(
@@ -57,6 +75,10 @@ async def edit_deck(request: DeckEditRequest, user=Depends(verify_firebase_token
     try:
         system_prompt = EDIT_DECK_PROMPT
 
+        print(f"Editing deck with instruction: {request.instruction}")
+
+        # TODO: Improve the prompt engineering here. Too much data is passed with deck_Json.
+        #       Only pass terms-meanings and user conversation history.
         # Build user content with message history context
         user_content = f"""Current deck: {json.dumps(request.deck_json)} """
 
@@ -71,7 +93,21 @@ async def edit_deck(request: DeckEditRequest, user=Depends(verify_firebase_token
 
         response = await ai_client.generate(system_prompt, user_content)
         result = json.loads(response)
-        return DeckEditResponse(**result)
+        deck = DeckEditResponse(**result)
+
+        # Remove duplicates from updated lexemes,
+        #   also check original deck for existing terms to avoid adding duplicates when editing
+        unique_lexemes = []
+        seen_terms = set(lexeme['term'] for lexeme in request.deck_json.get(
+            'lexemes', []))  # Terms from original deck
+
+        for lexeme in deck.updated_lexemes:
+            if lexeme.term not in seen_terms:
+                unique_lexemes.append(lexeme)
+                seen_terms.add(lexeme.term)
+
+        deck.updated_lexemes = unique_lexemes
+        return deck
 
     except json.JSONDecodeError as e:
         raise HTTPException(

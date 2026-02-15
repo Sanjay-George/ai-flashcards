@@ -19,6 +19,7 @@ Task:
    - "language": ISO 639-1 code for the language being studied (e.g., 'de' for German, 'es' for Spanish, 'fr' for French, etc.)
    - "tags": Optional keywords (e.g., "verbs", "travel", "grammar", "beginner") to help categorize the deck.
 
+
 Output JSON:
 {
   "title": "...",
@@ -48,6 +49,7 @@ Field definitions:
 
 Task:
 - Interpret the instruction to add, edit, or remove lexemes.
+- If instruction is to add terms, DO NOT add existing terms again. (ie. AVOID DUPLICATES)
 - When modifying terms (e.g., adding articles to German nouns), update the "term" field, NOT the "meaning" field.
 - The "meaning" field should always remain in English.
 - Use the conversation history to understand context and follow-up requests.
