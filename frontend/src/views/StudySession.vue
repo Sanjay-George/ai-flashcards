@@ -413,19 +413,19 @@ const askFlashcardQuestion = async (): Promise<void> => {
                 </div>
 
                 <!-- Chat Section -->
-                <div class="mt-4 sm:mt-6 text-left bg-secondary p-3 sm:p-4 rounded-lg">
-                    <p class="font-semibold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">💬 Ask questions about
+                <div class="mt-4 sm:mt-6 text-left bg-secondary py-4 sm:py-4 rounded-lg">
+                    <p class="font-semibold text-foreground mb-3 sm:mb-3 text-base sm:text-lg">💬 Ask questions about
                         this
                         card</p>
 
                     <!-- Chat History -->
                     <div v-if="chatHistory.length > 0"
-                        class="mb-3 bg-card rounded-lg p-2 sm:p-3 max-h-48 sm:max-h-60 overflow-y-auto border border-border">
+                        class="mb-3 sm:rounded-lg py-3 sm:p-3 max-h-100 overflow-y-auto sm:border sm:border-border sm:bg-card border-l">
                         <div v-for="(message, index) in chatHistory" :key="index" :class="[
-                            'mb-2 p-2 sm:p-3 rounded-lg text-xs sm:text-sm',
+                            'mb-2 p-3 sm:p-3 rounded-lg text-base',
                             message.role === 'user' ? 'bg-primary text-primary-foreground ml-4 sm:ml-8' : 'bg-secondary text-foreground mr-4 sm:mr-8'
                         ]">
-                            <div class="text-xs font-semibold mb-1 opacity-70">
+                            <div class="text-xs sm:text-sm font-semibold mb-1 opacity-70">
                                 {{ message.role === 'user' ? '👤 You' : '🤖 Tutor' }}
                             </div>
                             <!-- User messages as plain text -->
@@ -438,16 +438,17 @@ const askFlashcardQuestion = async (): Promise<void> => {
                     <!-- Input Section -->
                     <div class="flex gap-2 items-center">
                         <input v-model="chatInput"
-                            class="flex-1 px-3 py-2.5 border border-input rounded-lg text-base sm:text-sm focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 bg-background"
+                            class="flex-1 px-3 py-3 sm:py-2.5 border border-input rounded-lg text-sm sm:text-base focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 bg-background"
                             type="text" placeholder="e.g., How do I use this? Give me examples." :disabled="chatLoading"
                             @keydown.enter="askFlashcardQuestion" />
-                        <button @click="askFlashcardQuestion" class="btn btn-secondary whitespace-nowrap"
+                        <button @click="askFlashcardQuestion"
+                            class="btn btn-secondary whitespace-nowrap px-4 py-3 sm:px-3 sm:py-2"
                             :disabled="chatLoading || !chatInput.trim()">
                             {{ chatLoading ? 'Asking...' : 'Ask' }}
                         </button>
                     </div>
-                    <p v-if="chatError" class="text-destructive text-xs sm:text-sm mt-2">{{ chatError }}</p>
-                    <p v-if="!chatError && chatHistory.length === 0" class="text-muted-foreground text-xs mt-2 italic">
+                    <p v-if="chatError" class="text-destructive text-sm sm:text-sm mt-2">{{ chatError }}</p>
+                    <p v-if="!chatError && chatHistory.length === 0" class="text-muted-foreground text-sm mt-2 italic">
                         Start a conversation about this flashcard! Press Enter to send.
                     </p>
                 </div>
