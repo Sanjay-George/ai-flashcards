@@ -29,7 +29,7 @@ export function calculateSRS(
         if (repetitions === 0) {
             interval = 1;
         } else if (repetitions === 1) {
-            interval = 5;
+            interval = 2;
         } else {
             interval = Math.round(currentInterval * easeFactor);
         }

@@ -19,10 +19,10 @@ const MILESTONES = [
     { level: 4, title: 'Steady Student', xpRequired: 350, emoji: '📝', description: 'Consistency is paying off' },
     { level: 5, title: 'Dedicated Learner', xpRequired: 600, emoji: '🎯', description: 'You\'re developing real language instinct' },
     { level: 6, title: 'Rising Scholar', xpRequired: 1000, emoji: '📚', description: 'Words are becoming second nature' },
-    { level: 7, title: 'Language Enthusiast', xpRequired: 1500, emoji: '🌟', description: 'Your persistence is impressive' },
-    { level: 8, title: 'Vocabulary Artisan', xpRequired: 2200, emoji: '⚡', description: 'You craft meaning with precision' },
-    { level: 9, title: 'Word Master', xpRequired: 3000, emoji: '🏆', description: 'Few reach this level of mastery' },
-    { level: 10, title: 'Polyglot Legend', xpRequired: 4000, emoji: '👑', description: 'A true master of languages' },
+    { level: 7, title: 'Language Enthusiast', xpRequired: 1700, emoji: '🌟', description: 'Your persistence is impressive' },
+    { level: 8, title: 'Vocabulary Artisan', xpRequired: 2500, emoji: '⚡', description: 'You craft meaning with precision' },
+    { level: 9, title: 'Word Master', xpRequired: 3500, emoji: '🏆', description: 'Few reach this level of mastery' },
+    { level: 10, title: 'Polyglot Legend', xpRequired: 5000, emoji: '👑', description: 'A true master of languages' },
 ];
 
 /**
