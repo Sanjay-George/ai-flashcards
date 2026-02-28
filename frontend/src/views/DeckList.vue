@@ -51,13 +51,6 @@ const formatDate = (dateString: string): string => {
     })
 }
 
-// Get progress bar color based on mastery percentage
-const getMasteryColor = (percent: number): string => {
-    if (percent >= 80) return 'from-green-400 to-emerald-500'
-    if (percent >= 50) return 'from-blue-400 to-cyan-500'
-    if (percent >= 25) return 'from-yellow-400 to-orange-500'
-    return 'from-orange-400 to-red-400'
-}
 
 const getMasteryLabel = (percent: number): string => {
     if (percent >= 80) return 'Mastered'
