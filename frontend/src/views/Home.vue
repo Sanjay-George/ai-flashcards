@@ -3,95 +3,110 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto">
-        <div class="text-center py-6 sm:py-10 lg:py-12">
+    <div class="max-w-3xl mx-auto">
+        <div class="py-8 sm:py-16 lg:py-20">
             <h1
-                class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 bg-linear-to-r from-primary to-primary-gradient-end bg-clip-text text-transparent leading-tight">
-                🎴 Welcome to Flashcards AI
+                class="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-foreground mb-4 leading-tight">
+                Learn languages<br />with AI-powered flashcards
             </h1>
-            <p class="text-base sm:text-lg lg:text-xl text-muted-foreground mb-8 sm:mb-12 px-2">
-                Your intelligent language learning companion powered by AI
+            <p class="text-base sm:text-lg text-muted-foreground mb-10 max-w-xl leading-relaxed">
+                Create flashcard decks from text or images. Study with spaced repetition. Practice conversations with AI
+                feedback.
             </p>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12">
-                <div class="card text-center p-5 sm:p-8">
-                    <div class="text-4xl sm:text-5xl mb-3 sm:mb-4">🤖</div>
-                    <h3 class="text-base sm:text-lg font-semibold mb-2 text-foreground">AI-Powered Creation</h3>
-                    <p class="text-sm text-muted-foreground">Create flashcard decks from text or images using advanced
-                        AI</p>
-                </div>
-
-                <div class="card text-center p-5 sm:p-8">
-                    <div class="text-4xl sm:text-5xl mb-3 sm:mb-4">💬</div>
-                    <h3 class="text-base sm:text-lg font-semibold mb-2 text-foreground">Interactive Editing</h3>
-                    <p class="text-sm text-muted-foreground">Refine your decks with natural language instructions</p>
-                </div>
-
-                <div class="card text-center p-5 sm:p-8">
-                    <div class="text-4xl sm:text-5xl mb-3 sm:mb-4">📚</div>
-                    <h3 class="text-base sm:text-lg font-semibold mb-2 text-foreground">Smart Flashcards</h3>
-                    <p class="text-sm text-muted-foreground">Generate contextual questions in Simple or Master mode</p>
-                </div>
-
-                <div class="card text-center p-5 sm:p-8">
-                    <div class="text-4xl sm:text-5xl mb-3 sm:mb-4">📈</div>
-                    <h3 class="text-base sm:text-lg font-semibold mb-2 text-foreground">Progress Tracking</h3>
-                    <p class="text-sm text-muted-foreground">Track your learning progress with mastery scores</p>
-                </div>
+            <div class="flex flex-col sm:flex-row gap-3 mb-16 sm:mb-20">
+                <RouterLink to="/create" class="btn btn-primary px-5 py-2.5 text-sm">
+                    Create a deck
+                </RouterLink>
+                <RouterLink to="/conversation" class="btn btn-secondary px-5 py-2.5 text-sm">
+                    Practice conversations
+                </RouterLink>
+                <RouterLink to="/decks" class="btn btn-secondary px-5 py-2.5 text-sm">
+                    Browse decks
+                </RouterLink>
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4 sm:px-0">
-                <RouterLink to="/create" class="btn btn-primary px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg">
-                    Create Your First Deck
-                </RouterLink>
-                <RouterLink to="/decks" class="btn btn-secondary px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg">
-                    View My Decks
-                </RouterLink>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border"
+                style="border-radius: 0.5rem; overflow: hidden;">
+                <div class="bg-background p-6">
+                    <h3 class="text-sm font-medium text-foreground mb-1.5">AI-powered creation</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Create flashcard decks from text or images
+                        using advanced AI</p>
+                </div>
+
+                <div class="bg-background p-6">
+                    <h3 class="text-sm font-medium text-foreground mb-1.5">Interactive editing</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Refine your decks with natural language
+                        instructions</p>
+                </div>
+
+                <div class="bg-background p-6">
+                    <h3 class="text-sm font-medium text-foreground mb-1.5">Smart flashcards</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Generate contextual questions in Simple or
+                        Master mode</p>
+                </div>
+
+                <div class="bg-background p-6">
+                    <h3 class="text-sm font-medium text-foreground mb-1.5">Progress tracking</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Track your learning progress with mastery
+                        scores</p>
+                </div>
+
+                <div class="bg-background p-6">
+                    <h3 class="text-sm font-medium text-foreground mb-1.5">Conversation practice</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Simulate real-world dialogues and get
+                        personalized feedback</p>
+                </div>
+
+                <div class="bg-background p-6">
+                    <h3 class="text-sm font-medium text-foreground mb-1.5">Spaced repetition</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Difficult words appear more often, mastered
+                        words less frequently</p>
+                </div>
             </div>
         </div>
 
-        <div class="mt-10 sm:mt-16 lg:mt-20 py-8 sm:py-12 bg-card rounded-xl border border-border">
-            <h2 class="text-center text-2xl sm:text-3xl lg:text-4xl font-bold mb-8 sm:mb-12 text-foreground">How It
-                Works</h2>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-8">
-                <div class="text-center">
-                    <div
-                        class="w-12 h-12 sm:w-16 sm:h-16 bg-linear-to-br from-primary to-primary-gradient-end text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold mx-auto mb-3 sm:mb-4">
+        <div class="border-t border-border pt-12 sm:pt-16 pb-4">
+            <h2 class="text-lg font-medium text-foreground mb-10">How it works</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+                <div>
+                    <div class="w-8 h-8 bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium mb-3"
+                        style="border-radius: 0.25rem;">
                         1
                     </div>
-                    <h3 class="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-foreground">Create or Upload</h3>
-                    <p class="text-xs sm:text-sm text-muted-foreground">Share text or upload an image of the content you
-                        want to learn</p>
+                    <h3 class="text-sm font-medium mb-1 text-foreground">Create or upload</h3>
+                    <p class="text-xs text-muted-foreground leading-relaxed">Share text or upload an image of the
+                        content you want to learn</p>
                 </div>
 
-                <div class="text-center">
-                    <div
-                        class="w-12 h-12 sm:w-16 sm:h-16 bg-linear-to-br from-primary to-primary-gradient-end text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold mx-auto mb-3 sm:mb-4">
+                <div>
+                    <div class="w-8 h-8 bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium mb-3"
+                        style="border-radius: 0.25rem;">
                         2
                     </div>
-                    <h3 class="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-foreground">AI Extracts Lexemes</h3>
-                    <p class="text-xs sm:text-sm text-muted-foreground">Our AI identifies key terms, meanings, and parts
-                        of speech</p>
+                    <h3 class="text-sm font-medium mb-1 text-foreground">AI extracts lexemes</h3>
+                    <p class="text-xs text-muted-foreground leading-relaxed">AI identifies key terms, meanings, and
+                        parts of speech</p>
                 </div>
 
-                <div class="text-center">
-                    <div
-                        class="w-12 h-12 sm:w-16 sm:h-16 bg-linear-to-br from-primary to-primary-gradient-end text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold mx-auto mb-3 sm:mb-4">
+                <div>
+                    <div class="w-8 h-8 bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium mb-3"
+                        style="border-radius: 0.25rem;">
                         3
                     </div>
-                    <h3 class="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-foreground">Generate Flashcards</h3>
-                    <p class="text-xs sm:text-sm text-muted-foreground">Choose Simple or Master mode to create targeted
-                        questions</p>
+                    <h3 class="text-sm font-medium mb-1 text-foreground">Generate flashcards</h3>
+                    <p class="text-xs text-muted-foreground leading-relaxed">Choose Simple or Master mode to create
+                        targeted questions</p>
                 </div>
 
-                <div class="text-center">
-                    <div
-                        class="w-12 h-12 sm:w-16 sm:h-16 bg-linear-to-br from-primary to-primary-gradient-end text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold mx-auto mb-3 sm:mb-4">
+                <div>
+                    <div class="w-8 h-8 bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium mb-3"
+                        style="border-radius: 0.25rem;">
                         4
                     </div>
-                    <h3 class="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-foreground">Study & Master</h3>
-                    <p class="text-xs sm:text-sm text-muted-foreground">Practice with flashcards and track your progress
-                    </p>
+                    <h3 class="text-sm font-medium mb-1 text-foreground">Study & master</h3>
+                    <p class="text-xs text-muted-foreground leading-relaxed">Practice with flashcards and track your
+                        progress</p>
                 </div>
             </div>
         </div>

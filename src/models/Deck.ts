@@ -26,7 +26,7 @@ export interface IDeck extends Document {
 const LexemeSchema = new Schema<ILexeme>({
     term: { type: String, required: true },
     meaning: { type: String, required: true },
-    POS: { type: String, required: true },
+    POS: { type: String, default: '' },
     // SRS fields with defaults
     easeFactor: { type: Number, default: 2.5 },
     interval: { type: Number, default: 0 },

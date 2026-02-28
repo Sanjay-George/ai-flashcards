@@ -232,129 +232,123 @@ const previewLexemes = computed(() => {
 </script>
 
 <template>
-    <div class="max-w-5xl mx-auto">
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
-            <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Edit Generated Deck</h1>
-            <button @click="goBack" class="btn btn-secondary w-full sm:w-auto">← Back to Create</button>
+    <div>
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+            <h1 class="text-xl font-semibold text-foreground">Edit generated deck</h1>
+            <button @click="goBack" class="btn btn-secondary text-sm w-full sm:w-auto">Back</button>
         </div>
 
-        <div v-if="generatedDeck" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div v-if="generatedDeck" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <!-- Left Column: Deck Info & Lexemes -->
             <div class="card">
-                <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Deck Preview</h2>
+                <h2 class="text-sm font-medium mb-3 text-foreground">Preview</h2>
 
                 <div class="form-group">
-                    <label>Deck Title</label>
+                    <label>Title</label>
                     <input v-model="generatedDeck.title" class="form-control" type="text" />
                 </div>
 
                 <div class="form-group">
                     <label>Tags</label>
-                    <div class="flex flex-wrap gap-2 items-center">
+                    <div class="flex flex-wrap gap-1.5 items-center">
                         <span v-for="(tag, index) in generatedDeck.tags" :key="index" class="tag tag-primary">
                             {{ tag }}
                         </span>
-                        <span v-if="generatedDeck.language"
-                            class="tag bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                            🌐 {{ getLanguageName(generatedDeck.language) }}
+                        <span v-if="generatedDeck.language" class="tag">
+                            {{ getLanguageName(generatedDeck.language) }}
                         </span>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Lexemes ({{ previewLexemes.length }})</label>
-                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col gap-2 sm:gap-3">
+                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col gap-1">
                         <div v-for="(lexeme, index) in previewLexemes" :key="`${lexeme.term}-${index}`" :class="[
-                            'bg-card p-3 sm:p-4 rounded-lg flex flex-col sm:grid sm:grid-cols-[1fr_2fr_auto_auto] gap-2 sm:gap-3 items-start sm:items-center',
-                            pendingAdditions.some(l => l.term === lexeme.term) ? 'border-2 border-green-500' : '',
-                            pendingRemovals.some(l => l.term === lexeme.term) ? 'border-2 border-red-500 opacity-50' : ''
+                            'p-2.5 flex items-center gap-3 border-b border-border last:border-0',
+                            pendingAdditions.some(l => l.term === lexeme.term) ? 'bg-green-500/5' : '',
+                            pendingRemovals.some(l => l.term === lexeme.term) ? 'bg-destructive/5 opacity-50' : ''
                         ]">
-                            <div class="font-semibold text-foreground text-base sm:text-lg">{{ lexeme.term }}</div>
-                            <div class="text-sm text-muted-foreground">{{ lexeme.meaning }}</div>
-                            <div class="bg-secondary px-3 py-1 rounded-full text-sm text-secondary-foreground">
+                            <div class="font-medium text-sm text-foreground min-w-20">{{ lexeme.term }}</div>
+                            <div class="text-xs text-muted-foreground flex-1">{{ lexeme.meaning }}</div>
+                            <div class="text-xs text-muted-foreground border border-border px-1.5 py-0.5 shrink-0"
+                                style="border-radius: 0.25rem;">
                                 {{ lexeme.POS }}
                             </div>
                             <button @click="handleRemoveLexeme(lexeme.term)"
-                                class="text-destructive text-xl cursor-pointer p-1 rounded hover:bg-destructive/10"
-                                type="button" title="Remove lexeme">✕</button>
+                                class="text-destructive/60 hover:text-destructive text-sm cursor-pointer shrink-0 transition-colors"
+                                type="button" title="Remove">&times;</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex gap-4 mt-6">
-                    <button @click="saveDeck" class="btn btn-primary">
-                        💾 Save Deck
+                <div class="mt-4">
+                    <button @click="saveDeck" class="btn btn-primary text-sm">
+                        Save deck
                     </button>
                 </div>
             </div>
 
             <!-- Right Column: AI Chat Interface -->
             <div class="card">
-                <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">AI Assistant</h2>
-                <p class="text-muted-foreground mb-4">
-                    Chat with the AI to refine your deck. You can ask to add, remove, or edit lexemes.
+                <h2 class="text-sm font-medium mb-2 text-foreground">AI assistant</h2>
+                <p class="text-xs text-muted-foreground mb-3">
+                    Ask the AI to add, remove, or edit lexemes.
                 </p>
 
                 <!-- Chat History -->
-                <div class="mb-4 bg-secondary rounded-lg p-3 sm:p-4 max-h-62.5 sm:max-h-75 overflow-y-auto">
+                <div class="mb-3 border border-border p-3 max-h-62.5 sm:max-h-75 overflow-y-auto"
+                    style="border-radius: 0.375rem;">
                     <div v-for="(message, index) in messageHistory" :key="index" :class="[
-                        'mb-3 p-3 rounded-lg text-sm',
-                        message.role === 'user' ? 'bg-primary text-primary-foreground ml-4 sm:ml-8' : 'bg-card text-foreground mr-4 sm:mr-8'
-                    ]">
-                        <div class="text-xs font-semibold mb-1 opacity-70">
-                            {{ message.role === 'user' ? '👤 You' : '🤖 AI' }}
+                        'mb-2 p-2.5 text-sm',
+                        message.role === 'user' ? 'bg-foreground text-background ml-6' : 'bg-secondary text-foreground mr-6'
+                    ]" style="border-radius: 0.375rem;">
+                        <div class="text-xs font-medium mb-1 opacity-60">
+                            {{ message.role === 'user' ? 'You' : 'AI' }}
                         </div>
-                        <!-- User messages as plain text -->
                         <div v-if="message.role === 'user'" class="text-sm">{{ message.content }}</div>
-                        <!-- AI assistant messages with markdown rendering -->
                         <div v-else class="text-sm markdown-content" v-html="renderMarkdown(message.content)"></div>
                     </div>
-                    <div v-if="messageHistory.length === 0" class="text-muted-foreground text-sm text-center py-4">
-                        No conversation yet. Start by asking the AI to modify your deck!
+                    <div v-if="messageHistory.length === 0" class="text-muted-foreground text-xs text-center py-4">
+                        No conversation yet.
                     </div>
                 </div>
 
                 <!-- Pending Changes Alert -->
-                <div v-if="hasPendingChanges"
-                    class="bg-yellow-100 dark:bg-yellow-900/30 border-2 border-yellow-500 rounded-lg p-4 mb-4">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <strong class="text-yellow-900 dark:text-yellow-200">Pending Changes</strong>
-                            <p class="text-sm text-yellow-800 dark:text-yellow-300 mt-1">
-                                <span v-if="pendingAction === 'add'">Adding {{ pendingAdditions.length }}
-                                    lexeme(s)</span>
-                                <span v-if="pendingAction === 'remove'">Removing {{ pendingRemovals.length }}
-                                    lexeme(s)</span>
-                                <span v-if="pendingAction === 'edit'">Editing {{ pendingAdditions.length }}
-                                    lexeme(s)</span>
-                            </p>
-                        </div>
+                <div v-if="hasPendingChanges" class="border border-primary p-3 mb-3" style="border-radius: 0.375rem;">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-foreground">Pending changes</span>
+                        <span class="text-xs text-muted-foreground">
+                            <span v-if="pendingAction === 'add'">Adding {{ pendingAdditions.length }}</span>
+                            <span v-if="pendingAction === 'remove'">Removing {{ pendingRemovals.length }}</span>
+                            <span v-if="pendingAction === 'edit'">Editing {{ pendingAdditions.length }}</span>
+                        </span>
                     </div>
                     <div class="flex gap-2">
-                        <button @click="commitChanges" class="btn btn-primary btn-sm">
-                            ✓ Commit Changes
+                        <button @click="commitChanges" class="btn btn-primary text-sm flex-1">
+                            Commit
                         </button>
-                        <button @click="undoChanges" class="btn btn-secondary btn-sm">
-                            ↩ Undo
+                        <button @click="undoChanges" class="btn btn-secondary text-sm flex-1">
+                            Undo
                         </button>
                     </div>
                 </div>
 
                 <!-- Edit Input -->
                 <div class="form-group">
-                    <label for="edit-instruction">Your instruction</label>
+                    <label for="edit-instruction">Instruction</label>
                     <textarea id="edit-instruction" v-model="editInstruction" class="form-control"
-                        placeholder="E.g., 'Add articles to all German nouns' or 'Remove all verbs'" rows="4"
-                        :disabled="isEditing" @keydown.enter.ctrl="handleEdit"></textarea>
-                    <p class="text-xs text-muted-foreground mt-1">Tip: Press Ctrl+Enter to send</p>
+                        placeholder="e.g. 'Add articles to all German nouns'" rows="3" :disabled="isEditing"
+                        @keydown.enter.ctrl="handleEdit"></textarea>
+                    <p class="text-xs text-muted-foreground mt-1">Ctrl+Enter to send</p>
                 </div>
 
-                <button @click="handleEdit" class="btn btn-primary w-full"
+                <button @click="handleEdit" class="btn btn-primary w-full text-sm"
                     :disabled="isEditing || !editInstruction.trim()">
-                    {{ isEditing ? 'Processing...' : '💬 Send to AI' }}
+                    {{ isEditing ? 'Processing...' : 'Send' }}
                 </button>
 
-                <div v-if="editError" class="bg-destructive/10 text-destructive p-4 rounded-lg mt-4">
+                <div v-if="editError" class="bg-destructive/10 text-destructive p-3 text-sm mt-3"
+                    style="border-radius: 0.375rem;">
                     {{ editError }}
                 </div>
             </div>
@@ -363,19 +357,12 @@ const previewLexemes = computed(() => {
 </template>
 
 <style scoped>
-/* Minimal scoped styles - Tailwind handles most */
-.btn-sm {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-}
-
-/* Markdown content styling */
 .markdown-content {
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
 .markdown-content :deep(p) {
-    margin: 0.5em 0;
+    margin: 0.4em 0;
 }
 
 .markdown-content :deep(p:first-child) {
@@ -388,27 +375,22 @@ const previewLexemes = computed(() => {
 
 .markdown-content :deep(strong) {
     font-weight: 600;
-    color: inherit;
-}
-
-.markdown-content :deep(em) {
-    font-style: italic;
 }
 
 .markdown-content :deep(code) {
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
-    font-size: 0.875em;
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 0.1rem 0.2rem;
+    border-radius: 0.2rem;
+    font-size: 0.85em;
     font-family: monospace;
 }
 
 .markdown-content :deep(pre) {
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 0.75rem;
-    border-radius: 0.375rem;
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
     overflow-x: auto;
-    margin: 0.5em 0;
+    margin: 0.4em 0;
 }
 
 .markdown-content :deep(pre code) {
@@ -418,19 +400,19 @@ const previewLexemes = computed(() => {
 
 .markdown-content :deep(ul),
 .markdown-content :deep(ol) {
-    margin: 0.5em 0;
-    padding-left: 1.5em;
+    margin: 0.4em 0;
+    padding-left: 1.25em;
 }
 
 .markdown-content :deep(li) {
-    margin: 0.25em 0;
+    margin: 0.2em 0;
 }
 
 .markdown-content :deep(blockquote) {
-    border-left: 3px solid currentColor;
-    padding-left: 1em;
-    margin: 0.5em 0;
-    opacity: 0.8;
+    border-left: 2px solid currentColor;
+    padding-left: 0.75em;
+    margin: 0.4em 0;
+    opacity: 0.7;
 }
 
 .markdown-content :deep(a) {

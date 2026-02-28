@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import deckRoutes from './routes/decks.js';
 import flashcardRoutes from './routes/flashcards.js';
 import progressRoutes from './routes/progress.js';
+import conversationRoutes from './routes/conversations.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -28,6 +29,7 @@ mongoose.connect(MONGODB_URI).then(() => {
 app.use('/api/decks', deckRoutes);
 app.use('/api/flashcards', flashcardRoutes);
 app.use('/api/progress', progressRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {
