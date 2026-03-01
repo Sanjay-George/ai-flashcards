@@ -6,6 +6,7 @@ import CreateDeck from '../views/CreateDeck.vue'
 import EditGeneratedDeck from '../views/EditGeneratedDeck.vue'
 import DeckDetail from '../views/DeckDetail.vue'
 import StudySession from '../views/StudySession.vue'
+import ConversationPractice from '../views/ConversationPractice.vue'
 
 const routes: RouteRecordRaw[] = [
     {
@@ -45,6 +46,12 @@ const routes: RouteRecordRaw[] = [
         path: '/study/:id',
         name: 'StudySession',
         component: StudySession,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/conversation',
+        name: 'ConversationPractice',
+        component: ConversationPractice,
         meta: { requiresAuth: true }
     }
 ]

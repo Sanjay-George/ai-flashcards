@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useDeckStore } from '../stores/deckStore'
@@ -45,6 +45,37 @@ const chatHistory = ref<ChatMessage[]>([])
 // Progress tracking
 const sessionRatings = ref<number[]>([])
 const sessionResult = ref<SessionCompleteResponse | null>(null)
+
+// ========== Text-to-Speech ==========
+const ttsSupported = ref(typeof window !== 'undefined' && 'speechSynthesis' in window)
+const isSpeaking = ref(false)
+
+const languageMap: Record<string, string> = {
+    de: 'de-DE', es: 'es-ES', fr: 'fr-FR', it: 'it-IT', pt: 'pt-PT',
+    nl: 'nl-NL', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', ru: 'ru-RU',
+    ar: 'ar-SA', hi: 'hi-IN',
+}
+
+const speakText = (text: string) => {
+    if (!ttsSupported.value || !deck.value?.language) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = languageMap[deck.value.language] || 'en-US'
+    utterance.rate = 0.85
+    utterance.onstart = () => { isSpeaking.value = true }
+    utterance.onend = () => { isSpeaking.value = false }
+    utterance.onerror = () => { isSpeaking.value = false }
+    window.speechSynthesis.speak(utterance)
+}
+
+const stopSpeaking = () => {
+    window.speechSynthesis.cancel()
+    isSpeaking.value = false
+}
+
+onUnmounted(() => {
+    if (ttsSupported.value) window.speechSynthesis.cancel()
+})
 
 // Language-specific reference URLs
 const referenceUrls: Record<string, { baseUrl: string; name: string }> = {
@@ -214,60 +245,55 @@ const askFlashcardQuestion = async (): Promise<void> => {
 </script>
 
 <template>
-    <div class="max-w-3xl mx-auto">
+    <div>
         <div v-if="flashcardStore.loading" class="loading">
             <div class="spinner"></div>
-            <p class="mt-4">Loading flashcards...</p>
+            <p class="mt-4 text-sm">Loading flashcards...</p>
         </div>
 
-        <div v-else-if="sessionComplete"
-            class="card text-center py-8 sm:py-12 px-4 sm:px-8 max-w-xl mx-auto mt-4 sm:mt-8">
-            <div class="text-5xl sm:text-7xl mb-4">🎉</div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-foreground mb-2">Session Complete!</h1>
-            <p class="text-muted-foreground mb-4 sm:mb-6">You've reviewed all {{ flashcards.length }} flashcards</p>
+        <!-- Session Complete -->
+        <div v-else-if="sessionComplete" class="max-w-sm mx-auto mt-8">
+            <h1 class="text-xl font-semibold text-foreground mb-1">Session complete</h1>
+            <p class="text-sm text-muted-foreground mb-6">Reviewed {{ flashcards.length }} cards</p>
 
-            <!-- XP Earned -->
-            <div v-if="sessionResult" class="mb-8">
-                <!-- Level up celebration -->
-                <div v-if="sessionResult.leveledUp"
-                    class="mb-6 p-4 bg-linear-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl border border-yellow-300 dark:border-yellow-700">
-                    <div class="text-4xl mb-2">🏆</div>
-                    <p class="text-lg font-bold text-yellow-700 dark:text-yellow-400">Level Up!</p>
-                    <p class="text-2xl font-bold text-foreground">
+            <div v-if="sessionResult" class="mb-6">
+                <!-- Level up -->
+                <div v-if="sessionResult.leveledUp" class="mb-4 p-3 border border-primary"
+                    style="border-radius: 0.375rem;">
+                    <p class="text-sm font-medium text-foreground">Level up</p>
+                    <p class="text-lg font-semibold text-foreground">
                         {{ sessionResult.currentMilestone.emoji }} {{ sessionResult.currentMilestone.title }}
                     </p>
-                    <p class="text-sm text-muted-foreground mt-1">{{ sessionResult.currentMilestone.description }}</p>
+                    <p class="text-xs text-muted-foreground mt-0.5">{{ sessionResult.currentMilestone.description }}</p>
                 </div>
 
-                <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                    <div class="p-2 sm:p-3 bg-secondary rounded-lg">
-                        <div class="text-lg sm:text-2xl font-bold text-primary">+{{ sessionResult.xpEarned }}</div>
-                        <div class="text-xs text-muted-foreground">XP Earned</div>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="p-2.5 border border-border text-center" style="border-radius: 0.25rem;">
+                        <div class="text-base font-semibold text-foreground">+{{ sessionResult.xpEarned }}</div>
+                        <div class="text-xs text-muted-foreground">XP</div>
                     </div>
-                    <div class="p-2 sm:p-3 bg-secondary rounded-lg">
-                        <div class="text-lg sm:text-2xl font-bold text-foreground">{{ sessionResult.totalXP }}</div>
-                        <div class="text-xs text-muted-foreground">Total XP</div>
+                    <div class="p-2.5 border border-border text-center" style="border-radius: 0.25rem;">
+                        <div class="text-base font-semibold text-foreground">{{ sessionResult.totalXP }}</div>
+                        <div class="text-xs text-muted-foreground">Total</div>
                     </div>
-                    <div class="p-2 sm:p-3 bg-secondary rounded-lg">
-                        <div class="text-lg sm:text-2xl font-bold text-foreground">🔥 {{ sessionResult.currentStreak }}
-                        </div>
-                        <div class="text-xs text-muted-foreground">Day Streak</div>
+                    <div class="p-2.5 border border-border text-center" style="border-radius: 0.25rem;">
+                        <div class="text-base font-semibold text-foreground">{{ sessionResult.currentStreak }}</div>
+                        <div class="text-xs text-muted-foreground">Streak</div>
                     </div>
                 </div>
 
-                <!-- Level progress bar -->
-                <div v-if="sessionResult.nextMilestone" class="mb-2">
-                    <div class="flex justify-between items-center text-sm mb-1">
+                <!-- Level progress -->
+                <div v-if="sessionResult.nextMilestone" class="mb-4">
+                    <div class="flex justify-between items-center text-xs mb-1">
                         <span class="text-muted-foreground">
-                            {{ sessionResult.currentMilestone.emoji }} Lv.{{ sessionResult.level }}
-                            {{ sessionResult.currentMilestone.title }}
+                            Lv.{{ sessionResult.level }} {{ sessionResult.currentMilestone.title }}
                         </span>
                         <span class="text-muted-foreground">
-                            {{ sessionResult.nextMilestone.emoji }} Lv.{{ sessionResult.nextMilestone.level }}
+                            Lv.{{ sessionResult.nextMilestone.level }}
                         </span>
                     </div>
-                    <div class="w-full h-2.5 bg-border rounded-full overflow-hidden">
-                        <div class="h-full bg-linear-to-r from-primary to-primary-gradient-end transition-all duration-700 rounded-full"
+                    <div class="w-full h-1.5 bg-secondary overflow-hidden" style="border-radius: 1px;">
+                        <div class="h-full bg-primary transition-all duration-700"
                             :style="{ width: Math.round(((sessionResult.totalXP - sessionResult.currentMilestone.xpRequired) / (sessionResult.nextMilestone.xpRequired - sessionResult.currentMilestone.xpRequired)) * 100) + '%' }">
                         </div>
                     </div>
@@ -275,94 +301,127 @@ const askFlashcardQuestion = async (): Promise<void> => {
                         {{ sessionResult.xpToNextLevel }} XP to next level
                     </p>
                 </div>
-                <div v-else class="text-sm text-muted-foreground">
-                    {{ sessionResult.currentMilestone.emoji }} Max level reached! You're a {{
-                        sessionResult.currentMilestone.title }}!
-                </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-                <button @click="restartSession" class="btn btn-primary w-full sm:w-auto">
-                    Study Again
+            <div class="flex gap-2">
+                <button @click="restartSession" class="btn btn-primary flex-1 text-sm">
+                    Study again
                 </button>
-                <button @click="goToDeck" class="btn btn-secondary w-full sm:w-auto">
-                    Back to Deck
+                <button @click="goToDeck" class="btn btn-secondary flex-1 text-sm">
+                    Back
                 </button>
             </div>
         </div>
 
+        <!-- Study Card -->
         <div v-else-if="currentCard">
-            <div class="flex justify-between items-center mb-4 sm:mb-6">
-                <h2 class="text-lg sm:text-2xl font-semibold text-foreground truncate mr-2">{{ deck?.title }}</h2>
-                <button @click="goToDeck" class="btn btn-secondary text-sm shrink-0">Exit</button>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-medium text-foreground truncate mr-2">{{ deck?.title }}</h2>
+                <button @click="goToDeck"
+                    class="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Exit</button>
             </div>
 
             <!-- Progress bar -->
-            <div class="w-full h-2 bg-border rounded-full overflow-hidden mb-2">
-                <div class="h-full bg-linear-to-r from-primary to-primary-gradient-end transition-all duration-300"
-                    :style="{ width: progress + '%' }"></div>
+            <div class="w-full h-1 bg-secondary overflow-hidden mb-1.5" style="border-radius: 1px;">
+                <div class="h-full bg-primary transition-all duration-300" :style="{ width: progress + '%' }"></div>
             </div>
 
             <!-- Card counter and navigation -->
-            <div class="flex justify-center items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div class="flex justify-center items-center gap-3 mb-6">
                 <button @click="goToPrevious" :disabled="!canGoBack"
-                    class="p-2 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary"
-                    title="Previous card">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="p-1.5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed hover:bg-secondary cursor-pointer"
+                    style="border-radius: 0.25rem;" title="Previous card">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
-                <p class="text-muted-foreground text-sm">
-                    Card {{ currentIndex + 1 }} of {{ flashcards.length }}
-                    <span v-if="isReviewingPrevious"
-                        class="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
-                        Reviewing
+                <p class="text-muted-foreground text-xs">
+                    {{ currentIndex + 1 }} / {{ flashcards.length }}
+                    <span v-if="isReviewingPrevious" class="ml-1.5 text-xs border border-border px-1.5 py-0.5"
+                        style="border-radius: 0.25rem;">
+                        reviewing
                     </span>
                 </p>
                 <button @click="goToNext" :disabled="!canGoForward"
-                    class="p-2 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary"
-                    title="Next reviewed card">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="p-1.5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed hover:bg-secondary cursor-pointer"
+                    style="border-radius: 0.25rem;" title="Next reviewed card">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </button>
             </div>
 
             <!-- Flashcard -->
-            <div class="perspective-[1000px] mb-6 sm:mb-8 cursor-pointer" @click="flipCard">
-                <div class="relative w-full min-h-64 sm:min-h-80 lg:min-h-100 transition-transform duration-600 transform-style-preserve-3d"
+            <div class="perspective-[1000px] mb-6 cursor-pointer" @click="flipCard">
+                <div class="relative w-full min-h-56 sm:min-h-72 lg:min-h-80 transition-transform duration-600 transform-style-preserve-3d"
                     :class="{ 'rotate-y-180': showAnswer }">
                     <!-- Front -->
-                    <div
-                        class="absolute w-full min-h-64 sm:min-h-80 lg:min-h-100 backface-hidden flex flex-col items-center justify-center p-6 sm:p-10 lg:p-12 bg-card rounded-xl border border-border shadow-lg">
-                        <div
-                            class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4 sm:mb-6">
+                    <div class="absolute w-full min-h-56 sm:min-h-72 lg:min-h-80 backface-hidden flex flex-col items-center justify-center p-6 sm:p-10 bg-background border border-border"
+                        style="border-radius: 0.5rem;">
+                        <div class="text-xs uppercase tracking-widest text-muted-foreground mb-4">
                             Question
                         </div>
                         <div
-                            class="text-xl sm:text-2xl lg:text-3xl font-semibold text-center text-foreground leading-relaxed">
+                            class="text-lg sm:text-xl lg:text-2xl font-medium text-center text-foreground leading-relaxed">
                             {{ currentCard.question }}</div>
-                        <div class="mt-6 sm:mt-8 text-xs sm:text-sm text-muted-foreground italic">Tap to reveal answer
+                        <div class="mt-6 flex items-center gap-3">
+                            <span class="text-xs text-muted-foreground">Tap to reveal</span>
+                            <button v-if="ttsSupported && deck?.language"
+                                @click.stop="isSpeaking ? stopSpeaking() : speakText(currentCard.question)"
+                                class="inline-flex items-center gap-1 px-2 py-1 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                                style="border-radius: 0.25rem;" title="Listen">
+                                <svg v-if="!isSpeaking" class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15.536 8.464a5 5 0 010 7.072M11 5L6 9H2v6h4l5 4V5z" />
+                                </svg>
+                                <svg v-else class="w-3.5 h-3.5 animate-pulse" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="text-xs">{{ isSpeaking ? 'Stop' : 'Listen' }}</span>
+                            </button>
                         </div>
                     </div>
 
                     <!-- Back -->
-                    <div
-                        class="absolute w-full min-h-64 sm:min-h-80 lg:min-h-100 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-6 sm:p-10 lg:p-12 bg-linear-to-br from-primary to-primary-gradient-end text-white rounded-xl shadow-lg">
-                        <div class="text-xs sm:text-sm font-semibold uppercase tracking-wide opacity-80 mb-4 sm:mb-6">
-                            Answer</div>
-                        <div class="text-xl sm:text-2xl lg:text-3xl font-semibold text-center leading-relaxed">{{
-                            currentCard.answer }}</div>
+                    <div class="absolute w-full min-h-56 sm:min-h-72 lg:min-h-80 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-6 sm:p-10 bg-primary/5 text-foreground border border-primary/30"
+                        style="border-radius: 0.5rem;">
+                        <div class="text-xs uppercase tracking-widest text-primary/60 mb-4">Answer</div>
+                        <div class="text-lg sm:text-xl lg:text-2xl font-medium text-center leading-relaxed">
+                            {{ currentCard.answer }}</div>
+
+                        <!-- TTS + Reference -->
+                        <div class="mt-5 flex items-center gap-2">
+                            <button v-if="ttsSupported && deck?.language"
+                                @click.stop="isSpeaking ? stopSpeaking() : speakText(currentCard.answer)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-primary/30 text-primary hover:bg-primary/10 transition-colors text-xs cursor-pointer"
+                                style="border-radius: 0.25rem;" title="Listen">
+                                <svg v-if="!isSpeaking" class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15.536 8.464a5 5 0 010 7.072M11 5L6 9H2v6h4l5 4V5z" />
+                                </svg>
+                                <svg v-else class="w-3.5 h-3.5 animate-pulse" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {{ isSpeaking ? 'Stop' : 'Listen' }}
+                            </button>
+                        </div>
 
                         <!-- Reference Link -->
-                        <div v-if="referenceUrl" class="mt-6">
+                        <div v-if="referenceUrl" class="mt-2">
                             <a :href="referenceUrl.url" target="_blank" rel="noopener noreferrer"
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-all text-sm font-medium">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-primary/30 hover:bg-primary/10 transition-colors text-xs text-primary/70"
+                                style="border-radius: 0.25rem;">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
-                                View on {{ referenceUrl.name }}
+                                {{ referenceUrl.name }}
                             </a>
                         </div>
                     </div>
@@ -370,85 +429,84 @@ const askFlashcardQuestion = async (): Promise<void> => {
             </div>
 
             <!-- Rating Section -->
-            <div v-if="showAnswer" class="text-center">
-                <!-- When reviewing a previous card -->
-                <div v-if="isReviewingPrevious" class="mb-4">
-                    <p class="text-muted-foreground mb-4">You've already rated this card</p>
-                    <div class="flex justify-center gap-3">
-                        <button v-if="canGoBack" @click="goToPrevious" class="btn btn-secondary">
-                            ← Previous
+            <div v-if="showAnswer">
+                <!-- Reviewing previous -->
+                <div v-if="isReviewingPrevious" class="text-center mb-4">
+                    <p class="text-xs text-muted-foreground mb-3">Already rated</p>
+                    <div class="flex justify-center gap-2">
+                        <button v-if="canGoBack" @click="goToPrevious" class="btn btn-secondary text-sm">
+                            Previous
                         </button>
-                        <button @click="goToNext" class="btn btn-primary">
-                            Next →
+                        <button @click="goToNext" class="btn btn-primary text-sm">
+                            Next
                         </button>
                     </div>
                 </div>
 
-                <!-- When rating a new card -->
-                <div v-else>
-                    <p class="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">How well did you know
-                        this?</p>
-                    <div class="grid grid-cols-3 sm:flex sm:justify-center gap-2 sm:gap-3">
+                <!-- Rating new card -->
+                <div v-else class="text-center">
+                    <p class="text-xs text-muted-foreground mb-3">How well did you know this?</p>
+                    <div class="flex justify-center gap-1.5">
                         <button @click="rateCard(1)"
-                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-red-400 text-white hover:bg-red-500 active:scale-95 transition-all text-xs sm:text-sm">
-                            😞 Not at all
+                            class="btn px-3 py-2 border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-xs cursor-pointer"
+                            style="border-radius: 0.25rem;">
+                            Again
                         </button>
                         <button @click="rateCard(2)"
-                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-orange-400 text-white hover:bg-orange-500 active:scale-95 transition-all text-xs sm:text-sm">
-                            😐 Hard
+                            class="btn px-3 py-2 border border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors text-xs cursor-pointer"
+                            style="border-radius: 0.25rem;">
+                            Hard
                         </button>
                         <button @click="rateCard(3)"
-                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-green-400 text-white hover:bg-green-500 active:scale-95 transition-all text-xs sm:text-sm">
-                            🙂 Good
+                            class="btn px-3 py-2 border border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors text-xs cursor-pointer"
+                            style="border-radius: 0.25rem;">
+                            Good
                         </button>
                         <button @click="rateCard(4)"
-                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-teal-400 text-white hover:bg-teal-500 active:scale-95 transition-all text-xs sm:text-sm">
-                            😊 Easy
+                            class="btn px-3 py-2 border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 transition-colors text-xs cursor-pointer"
+                            style="border-radius: 0.25rem;">
+                            Easy
                         </button>
                         <button @click="rateCard(5)"
-                            class="btn px-3 sm:px-5 py-2.5 sm:py-3 bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all text-xs sm:text-sm">
-                            🎯 Perfect
+                            class="btn px-3 py-2 border border-primary/40 bg-primary/8 text-primary hover:bg-primary/15 transition-colors text-xs cursor-pointer"
+                            style="border-radius: 0.25rem;">
+                            Perfect
                         </button>
                     </div>
                 </div>
 
                 <!-- Chat Section -->
-                <div class="mt-4 sm:mt-6 text-left bg-secondary py-4 sm:py-4 rounded-lg">
-                    <p class="font-semibold text-foreground mb-3 sm:mb-3 text-base sm:text-lg">💬 Ask questions about
-                        this
-                        card</p>
+                <div class="mt-5 border-t border-border pt-4">
+                    <p class="text-xs font-medium text-foreground mb-2">Ask about this card</p>
 
                     <!-- Chat History -->
-                    <div v-if="chatHistory.length > 0"
-                        class="mb-3 sm:rounded-lg py-3 sm:p-3 max-h-100 overflow-y-auto sm:border sm:border-border sm:bg-card border-l">
+                    <div v-if="chatHistory.length > 0" class="mb-3 border border-border p-3 max-h-100 overflow-y-auto"
+                        style="border-radius: 0.375rem;">
                         <div v-for="(message, index) in chatHistory" :key="index" :class="[
-                            'mb-2 p-3 sm:p-3 rounded-lg text-base',
-                            message.role === 'user' ? 'bg-primary text-primary-foreground ml-4 sm:ml-8' : 'bg-secondary text-foreground mr-4 sm:mr-8'
-                        ]">
-                            <div class="text-xs sm:text-sm font-semibold mb-1 opacity-70">
-                                {{ message.role === 'user' ? '👤 You' : '🤖 Tutor' }}
+                            'mb-2 p-2.5 text-sm',
+                            message.role === 'user' ? 'bg-foreground text-background ml-6' : 'bg-secondary text-foreground mr-6'
+                        ]" style="border-radius: 0.375rem;">
+                            <div class="text-xs font-medium mb-1 opacity-60">
+                                {{ message.role === 'user' ? 'You' : 'Tutor' }}
                             </div>
-                            <div v-if="message.role === 'user'" class="whitespace-pre-wrap">{{ message.content }}</div>
-                            <div v-else class="markdown-content" v-html="renderMarkdown(message.content)"></div>
+                            <div v-if="message.role === 'user'" class="whitespace-pre-wrap text-sm">{{ message.content
+                                }}</div>
+                            <div v-else class="text-sm markdown-content" v-html="renderMarkdown(message.content)"></div>
                         </div>
                     </div>
 
-                    <!-- Input Section -->
+                    <!-- Input -->
                     <div class="flex gap-2 items-center">
                         <input v-model="chatInput"
-                            class="flex-1 px-3 py-3 sm:py-2.5 border border-input rounded-lg text-sm sm:text-base focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10 bg-background"
-                            type="text" placeholder="e.g., How do I use this? Give me examples." :disabled="chatLoading"
-                            @keydown.enter="askFlashcardQuestion" />
-                        <button @click="askFlashcardQuestion"
-                            class="btn btn-secondary whitespace-nowrap px-4 py-3 sm:px-3 sm:py-2"
+                            class="flex-1 px-3 py-2 border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring bg-background"
+                            style="border-radius: 0.375rem;" type="text" placeholder="e.g. How do I use this word?"
+                            :disabled="chatLoading" @keydown.enter="askFlashcardQuestion" />
+                        <button @click="askFlashcardQuestion" class="btn btn-secondary text-sm px-3 py-2"
                             :disabled="chatLoading || !chatInput.trim()">
-                            {{ chatLoading ? 'Asking...' : 'Ask' }}
+                            {{ chatLoading ? '...' : 'Ask' }}
                         </button>
                     </div>
-                    <p v-if="chatError" class="text-destructive text-sm sm:text-sm mt-2">{{ chatError }}</p>
-                    <p v-if="!chatError && chatHistory.length === 0" class="text-muted-foreground text-sm mt-2 italic">
-                        Start a conversation about this flashcard! Press Enter to send.
-                    </p>
+                    <p v-if="chatError" class="text-destructive text-xs mt-1.5">{{ chatError }}</p>
                 </div>
             </div>
         </div>
@@ -456,7 +514,6 @@ const askFlashcardQuestion = async (): Promise<void> => {
 </template>
 
 <style scoped>
-/* Custom 3D flip styles that Tailwind doesn't support directly */
 .perspective-\[1000px\] {
     perspective: 1000px;
 }
@@ -477,30 +534,28 @@ const askFlashcardQuestion = async (): Promise<void> => {
     transition-duration: 600ms;
 }
 
-/* Responsive min-heights for flashcard */
-.min-h-64 {
-    min-height: 16rem;
+.min-h-56 {
+    min-height: 14rem;
 }
 
 @media (min-width: 640px) {
-    .sm\:min-h-80 {
-        min-height: 20rem;
+    .sm\:min-h-72 {
+        min-height: 18rem;
     }
 }
 
 @media (min-width: 1024px) {
-    .lg\:min-h-100 {
-        min-height: 25rem;
+    .lg\:min-h-80 {
+        min-height: 20rem;
     }
 }
 
-/* Markdown content styling */
 .markdown-content {
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
 .markdown-content :deep(p) {
-    margin: 0.5em 0;
+    margin: 0.4em 0;
 }
 
 .markdown-content :deep(p:first-child) {
@@ -513,27 +568,22 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
 .markdown-content :deep(strong) {
     font-weight: 600;
-    color: inherit;
-}
-
-.markdown-content :deep(em) {
-    font-style: italic;
 }
 
 .markdown-content :deep(code) {
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
-    font-size: 0.875em;
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 0.1rem 0.2rem;
+    border-radius: 0.2rem;
+    font-size: 0.85em;
     font-family: monospace;
 }
 
 .markdown-content :deep(pre) {
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 0.75rem;
-    border-radius: 0.375rem;
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
     overflow-x: auto;
-    margin: 0.5em 0;
+    margin: 0.4em 0;
 }
 
 .markdown-content :deep(pre code) {
@@ -543,19 +593,19 @@ const askFlashcardQuestion = async (): Promise<void> => {
 
 .markdown-content :deep(ul),
 .markdown-content :deep(ol) {
-    margin: 0.5em 0;
-    padding-left: 1.5em;
+    margin: 0.4em 0;
+    padding-left: 1.25em;
 }
 
 .markdown-content :deep(li) {
-    margin: 0.25em 0;
+    margin: 0.2em 0;
 }
 
 .markdown-content :deep(blockquote) {
-    border-left: 3px solid currentColor;
-    padding-left: 1em;
-    margin: 0.5em 0;
-    opacity: 0.8;
+    border-left: 2px solid currentColor;
+    padding-left: 0.75em;
+    margin: 0.4em 0;
+    opacity: 0.7;
 }
 
 .markdown-content :deep(a) {

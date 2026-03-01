@@ -81,81 +81,74 @@ const resetForm = () => {
 </script>
 
 <template>
-    <div class="max-w-4xl mx-auto">
-        <h1 class="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-foreground">Create New Deck</h1>
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-xl font-semibold mb-6 text-foreground">Create deck</h1>
 
         <div class="card">
-            <div>
-                <h2 class="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-foreground">Step 1: Describe What You
-                    Want to Learn</h2>
-                <p class="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
-                    Tell the AI what you want to learn, or upload an image with text to extract.
-                    For example: "I want to learn the most common verbs in Spanish" or
-                    "Create flashcards for French food vocabulary"
-                </p>
+            <p class="text-sm text-muted-foreground mb-5 leading-relaxed">
+                Describe what you want to learn, or upload an image with text to extract.
+            </p>
 
-                <!-- Image Upload Section -->
-                <div class="mb-6">
-                    <label class="inline-block cursor-pointer">
-                        <input type="file" accept="image/*" capture="environment" @change="handleImageUpload"
-                            class="hidden" :disabled="isGenerating || isExtractingText" />
-                        <span
-                            class="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-primary/90">
-                            📷 {{ uploadedImage ? 'Change Image' : 'Upload Image or Take Photo' }}
-                        </span>
-                    </label>
+            <!-- Image Upload Section -->
+            <div class="mb-5">
+                <label class="inline-block cursor-pointer">
+                    <input type="file" accept="image/*" capture="environment" @change="handleImageUpload" class="hidden"
+                        :disabled="isGenerating || isExtractingText" />
+                    <span class="btn btn-secondary text-sm">
+                        {{ uploadedImage ? 'Change image' : 'Upload image' }}
+                    </span>
+                </label>
 
-                    <div v-if="isExtractingText" class="flex items-center gap-2 mt-4 text-primary text-sm">
-                        <div class="w-4 h-4 border-2 border-border border-t-primary rounded-full animate-spin"></div>
-                        <span>Extracting text from image...</span>
+                <div v-if="isExtractingText" class="flex items-center gap-2 mt-3 text-muted-foreground text-sm">
+                    <div class="w-3.5 h-3.5 border-2 border-border border-t-primary rounded-full animate-spin"></div>
+                    <span>Extracting text...</span>
+                </div>
+
+                <div v-if="uploadedImage && !isExtractingText" class="mt-3 p-3 bg-secondary border border-border"
+                    style="border-radius: 0.375rem;">
+                    <div class="flex justify-between items-center mb-2 text-sm text-foreground">
+                        <span>{{ uploadedImage.name }}</span>
+                        <button @click="clearImage"
+                            class="text-destructive/70 hover:text-destructive text-sm cursor-pointer transition-colors"
+                            type="button">Remove</button>
                     </div>
-
-                    <div v-if="uploadedImage && !isExtractingText"
-                        class="mt-4 p-4 bg-secondary rounded-lg border-2 border-primary">
-                        <div class="flex justify-between items-center mb-3 text-foreground font-medium">
-                            <span>✓ Image uploaded: {{ uploadedImage.name }}</span>
-                            <button @click="clearImage"
-                                class="text-destructive text-xl cursor-pointer p-1 rounded hover:bg-destructive/10"
-                                type="button">✕</button>
-                        </div>
-                        <div v-if="extractedText" class="bg-card p-4 rounded-md text-sm">
-                            <strong class="block mb-2 text-foreground">Extracted text:</strong>
-                            <p class="text-muted-foreground leading-relaxed max-h-40 overflow-y-auto m-0">{{
-                                extractedText }}</p>
-                        </div>
+                    <div v-if="extractedText" class="bg-background p-3 text-sm border border-border"
+                        style="border-radius: 0.25rem;">
+                        <p class="text-muted-foreground leading-relaxed max-h-32 overflow-y-auto m-0">{{
+                            extractedText }}</p>
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="message">Your Learning Goal</label>
-                    <textarea id="message" v-model="userMessage" class="form-control" placeholder="I want to learn..."
-                        rows="4" :disabled="isGenerating"></textarea>
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <button @click="generateDeck" class="btn btn-primary w-full sm:w-auto"
-                        :disabled="isGenerating || !userMessage.trim()">
-                        {{ isGenerating ? 'Generating...' : '✨ Generate Deck with AI' }}
-                    </button>
-                    <button v-if="userMessage || uploadedImage" @click="resetForm"
-                        class="btn btn-secondary w-full sm:w-auto">
-                        🔄 Reset
-                    </button>
-                </div>
-
-                <div v-if="error" class="bg-destructive/10 text-destructive p-4 rounded-lg mt-4">
-                    {{ error }}
                 </div>
             </div>
 
-            <div v-if="isGenerating" class="loading mt-8">
+            <div class="form-group">
+                <label for="message">Learning goal</label>
+                <textarea id="message" v-model="userMessage" class="form-control" placeholder="I want to learn..."
+                    rows="4" :disabled="isGenerating"></textarea>
+            </div>
+
+            <div class="flex gap-3">
+                <button @click="generateDeck" class="btn btn-primary text-sm"
+                    :disabled="isGenerating || !userMessage.trim()">
+                    {{ isGenerating ? 'Generating...' : 'Generate deck' }}
+                </button>
+                <button v-if="userMessage || uploadedImage" @click="resetForm" class="btn btn-secondary text-sm">
+                    Reset
+                </button>
+            </div>
+
+            <div v-if="error" class="bg-destructive/10 text-destructive p-3 text-sm mt-4"
+                style="border-radius: 0.375rem;">
+                {{ error }}
+            </div>
+
+            <div v-if="isGenerating" class="loading mt-6">
                 <div class="spinner"></div>
-                <p class="mt-4">AI is creating your deck...</p>
+                <p class="mt-3 text-sm">Generating your deck...</p>
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-/* Minimal scoped styles - Tailwind handles most */
+/* Minimal scoped styles */
 </style>

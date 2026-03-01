@@ -90,3 +90,79 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
+
+
+# ========== Conversation Practice Models ==========
+
+class ConversationMessage(BaseModel):
+    role: str  # 'ai' or 'user'
+    content: str
+    translation: Optional[str] = None
+
+
+class ConversationStartRequest(BaseModel):
+    language: str  # ISO 639-1 code (e.g., 'de', 'es', 'fr')
+    difficulty: str  # 'easy', 'medium', 'hard'
+    topic: str  # e.g., 'restaurant', 'travel', 'shopping'
+
+
+class ConversationStartResponse(BaseModel):
+    context: str
+    ai_message: str
+    ai_message_translation: str
+
+
+class ConversationNextRequest(BaseModel):
+    language: str
+    difficulty: str
+    topic: str
+    context: str
+    conversation_history: List[ConversationMessage]
+    user_message: str
+
+
+class ConversationNextResponse(BaseModel):
+    ai_message: str
+    ai_message_translation: str
+    should_end: bool = False
+    hint: Optional[str] = None
+
+
+class FeedbackPoint(BaseModel):
+    category: str  # 'grammar', 'vocabulary', 'fluency'
+    original: str
+    corrected: str
+    explanation: str
+
+
+class ConversationFeedbackRequest(BaseModel):
+    language: str
+    difficulty: str
+    topic: str
+    transcript: List[ConversationMessage]
+
+
+class ConversationFeedbackResponse(BaseModel):
+    overall_rating: int  # 1-5
+    feedback_points: List[FeedbackPoint]
+    summary: str
+
+
+class ConversationExtractVocabRequest(BaseModel):
+    language: str
+    difficulty: str
+    topic: str
+    transcript: List[ConversationMessage]
+
+
+class ExtractedLexeme(BaseModel):
+    term: str
+    definition: str
+    example_sentence: str = ""
+    notes: str = ""
+
+
+class ConversationExtractVocabResponse(BaseModel):
+    title: str
+    tags: List[str]
+    lexemes: List[ExtractedLexeme]

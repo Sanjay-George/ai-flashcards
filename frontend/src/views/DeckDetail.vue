@@ -262,274 +262,237 @@ const handleClone = async (): Promise<void> => {
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto">
+    <div>
         <div v-if="deckStore.loading" class="loading">
             <div class="spinner"></div>
-            <p class="mt-4">Loading deck...</p>
+            <p class="mt-4 text-sm">Loading deck...</p>
         </div>
 
         <div v-else-if="deck">
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6 sm:mb-8">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
                 <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                        <h1 class="text-2xl sm:text-3xl font-bold text-foreground">{{ deck.title }}</h1>
-                        <!-- Ownership & visibility badges -->
-                        <span v-if="isOwner"
-                            class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <h1 class="text-xl font-semibold text-foreground">{{ deck.title }}</h1>
+                        <span v-if="isOwner" class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground"
+                            style="border-radius: 0.25rem;">
                             Owner
                         </span>
-                        <span v-else
-                            class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                        <span v-else class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground"
+                            style="border-radius: 0.25rem;">
                             Public
                         </span>
                     </div>
-                    <div class="flex flex-wrap gap-2 items-center">
+                    <div class="flex flex-wrap gap-1.5 items-center">
                         <span v-for="tag in deck.tags" :key="tag" class="tag tag-primary">
                             {{ tag }}
                         </span>
-                        <!-- Language Selector (owner only) -->
                         <select v-if="isOwner" :value="deck.language || ''" @change="handleLanguageChange"
-                            class="ml-2 px-3 py-1 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-                            title="Reference language">
+                            class="ml-1 px-2 py-0.5 text-xs bg-background border border-border focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                            style="border-radius: 0.25rem;" title="Reference language">
                             <option value="">No language</option>
                             <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">
                                 {{ lang.name }}
                             </option>
                         </select>
-                        <span v-else-if="deck.language"
-                            class="tag bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                            🌐 {{availableLanguages.find(l => l.code === deck?.language)?.name || deck?.language}}
+                        <span v-else-if="deck.language" class="tag">
+                            {{availableLanguages.find(l => l.code === deck?.language)?.name || deck?.language}}
                         </span>
 
-                        <!-- Visibility Toggle (owner only) -->
                         <button v-if="isOwner" @click="handleVisibilityToggle"
-                            class="ml-2 px-3 py-1 text-sm rounded-lg border transition-colors" :class="deck.isPublic
-                                ? 'bg-purple-100 border-purple-300 text-purple-700 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300'
-                                : 'bg-secondary border-border text-muted-foreground hover:bg-accent'"
+                            class="ml-1 px-2 py-0.5 text-xs border border-border transition-colors cursor-pointer hover:bg-secondary"
+                            style="border-radius: 0.25rem;"
                             :title="deck.isPublic ? 'Click to make private' : 'Click to share publicly'">
-                            {{ deck.isPublic ? '🌐 Public' : '🔒 Private' }}
+                            {{ deck.isPublic ? 'Public' : 'Private' }}
                         </button>
                     </div>
                 </div>
                 <div class="flex gap-2 w-full sm:w-auto">
-                    <!-- Clone button (non-owners) -->
-                    <button v-if="!isOwner" @click="handleClone" class="btn btn-primary flex-1 sm:flex-none">
-                        Clone to Study
+                    <button v-if="!isOwner" @click="handleClone" class="btn btn-primary flex-1 sm:flex-none text-sm">
+                        Clone
                     </button>
-                    <button @click="$router.back()" class="btn btn-secondary flex-1 sm:flex-none">
-                        Back to List
+                    <button @click="$router.back()" class="btn btn-secondary flex-1 sm:flex-none text-sm">
+                        Back
                     </button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <!-- Lexemes List -->
                 <div class="card">
-                    <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Lexemes ({{ deck.lexemes.length
-                        }})</h2>
-                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col gap-2 sm:gap-3">
+                    <h2 class="text-sm font-medium mb-3 text-foreground">Lexemes ({{ deck.lexemes.length }})</h2>
+                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col gap-1">
                         <div v-for="(lexeme, index) in deck.lexemes" :key="index"
-                            class="bg-secondary p-3 sm:p-4 rounded-lg flex flex-col sm:grid gap-2 sm:gap-4 items-start sm:items-center"
-                            :class="isOwner ? 'sm:grid-cols-[1fr_2fr_auto_auto]' : 'sm:grid-cols-[1fr_2fr_auto]'">
-                            <div class="font-semibold text-foreground">{{ lexeme.term }}</div>
-                            <div class="text-sm text-muted-foreground">{{ lexeme.meaning }}</div>
-                            <div class="flex items-center gap-2 w-full sm:w-auto">
-                                <div class="bg-border px-3 py-1 rounded-full text-xs sm:text-sm">{{ lexeme.POS }}</div>
-                                <button v-if="isOwner" @click="handleRemoveLexeme(lexeme.term)"
-                                    class="ml-auto sm:ml-0 text-destructive text-2xl cursor-pointer p-1 rounded hover:bg-destructive/10 transition-all"
-                                    title="Remove word" :disabled="hasPendingChanges">
-                                    ×
-                                </button>
-                            </div>
+                            class="p-2.5 flex items-center gap-3 border-b border-border last:border-0">
+                            <div class="font-medium text-sm text-foreground min-w-20">{{ lexeme.term }}</div>
+                            <div class="text-xs text-muted-foreground flex-1">{{ lexeme.meaning }}</div>
+                            <div class="text-xs text-muted-foreground border border-border px-1.5 py-0.5 shrink-0"
+                                style="border-radius: 0.25rem;">{{ lexeme.POS }}</div>
+                            <button v-if="isOwner" @click="handleRemoveLexeme(lexeme.term)"
+                                class="text-destructive/60 hover:text-destructive text-sm cursor-pointer shrink-0 transition-colors"
+                                title="Remove" :disabled="hasPendingChanges">
+                                &times;
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Pending Changes Preview -->
-                <div v-if="hasPendingChanges" class="card border-2 border-primary">
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-                        <h2 class="text-xl sm:text-2xl font-semibold text-foreground">Pending Changes</h2>
-                        <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                <div v-if="hasPendingChanges" class="card border-primary border">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-sm font-medium text-foreground">Pending changes</h2>
+                        <span class="text-xs text-muted-foreground border border-border px-2 py-0.5"
+                            style="border-radius: 0.25rem;">
                             {{ pendingAction === 'add' ? 'Adding' : pendingAction === 'remove' ? 'Removing' : 'Editing'
                             }}
                         </span>
                     </div>
 
-                    <!-- Removals (shown in red) -->
-                    <div v-if="pendingRemovals.length > 0" class="mb-4">
-                        <h3 class="text-sm font-semibold text-destructive mb-2 flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-destructive"></span>
-                            Will be removed ({{ pendingRemovals.length }})
+                    <div v-if="pendingRemovals.length > 0" class="mb-3">
+                        <h3 class="text-xs font-medium text-destructive mb-1.5">Removing ({{ pendingRemovals.length }})
                         </h3>
-                        <div class="flex flex-col gap-2 max-h-92 overflow-y-auto">
+                        <div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
                             <div v-for="(lexeme, index) in pendingRemovals" :key="'remove-' + index"
-                                class="bg-destructive/10 border border-destructive/30 p-3 rounded-lg flex flex-col sm:grid sm:grid-cols-[1fr_2fr_auto] gap-1 sm:gap-3 sm:items-center">
-                                <div class="font-semibold text-destructive">{{ lexeme.term }}</div>
-                                <div class="text-destructive/70">{{ lexeme.meaning }}</div>
-                                <div class="bg-destructive/20 px-2 py-0.5 rounded-full text-xs text-destructive">{{
-                                    lexeme.POS }}</div>
+                                class="bg-destructive/5 border border-destructive/20 p-2 flex items-center gap-2 text-sm"
+                                style="border-radius: 0.25rem;">
+                                <span class="font-medium text-destructive">{{ lexeme.term }}</span>
+                                <span class="text-xs text-destructive/60 flex-1">{{ lexeme.meaning }}</span>
+                                <span class="text-xs text-destructive/60">{{ lexeme.POS }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Additions (shown in green) -->
-                    <div v-if="pendingAdditions.length > 0" class="mb-4">
-                        <h3 class="text-sm font-semibold text-green-600 mb-2 flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-green-500"></span>
-                            Will be added ({{ pendingAdditions.length }})
+                    <div v-if="pendingAdditions.length > 0" class="mb-3">
+                        <h3 class="text-xs font-medium text-green-700 mb-1.5">Adding ({{ pendingAdditions.length }})
                         </h3>
-                        <div class="flex flex-col gap-2 max-h-92 overflow-y-auto">
+                        <div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
                             <div v-for="(lexeme, index) in pendingAdditions" :key="'add-' + index"
-                                class="bg-green-500/10 border border-green-500/30 p-3 rounded-lg flex flex-col sm:grid sm:grid-cols-[1fr_2fr_auto] gap-1 sm:gap-3 sm:items-center">
-                                <div class="font-semibold text-green-700">{{ lexeme.term }}</div>
-                                <div class="text-green-600/70">{{ lexeme.meaning }}</div>
-                                <div class="bg-green-500/20 px-2 py-0.5 rounded-full text-xs text-green-700">{{
-                                    lexeme.POS }}</div>
+                                class="bg-green-500/5 border border-green-500/20 p-2 flex items-center gap-2 text-sm"
+                                style="border-radius: 0.25rem;">
+                                <span class="font-medium text-green-700">{{ lexeme.term }}</span>
+                                <span class="text-xs text-green-600/60 flex-1">{{ lexeme.meaning }}</span>
+                                <span class="text-xs text-green-600/60">{{ lexeme.POS }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
-                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-border">
-                        <button @click="undoChanges" class="btn btn-secondary flex-1">
-                            ✕ Undo
+                    <div class="flex gap-2 pt-3 border-t border-border">
+                        <button @click="undoChanges" class="btn btn-secondary flex-1 text-sm">
+                            Undo
                         </button>
-                        <button @click="commitChanges" class="btn btn-primary flex-1">
-                            ✓ Commit Changes
+                        <button @click="commitChanges" class="btn btn-primary flex-1 text-sm">
+                            Commit
                         </button>
                     </div>
                 </div>
 
-                <!-- Edit Deck (only show when no pending changes and user is owner) -->
+                <!-- Edit Deck -->
                 <div v-if="!hasPendingChanges && isOwner" class="card">
-                    <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Edit Deck with AI</h2>
-                    <p class="text-muted-foreground text-sm mb-4 leading-relaxed">
-                        Tell the AI how to modify your deck. Examples:<br />
-                        • "Add 10 more common adjectives"<br />
-                        • "Remove verbs related to food"<br />
-                        • "Add greetings and farewells"
+                    <h2 class="text-sm font-medium mb-2 text-foreground">Edit with AI</h2>
+                    <p class="text-xs text-muted-foreground mb-3 leading-relaxed">
+                        e.g. "Add 10 common adjectives", "Remove food-related verbs"
                     </p>
 
                     <div class="form-group">
-                        <textarea v-model="editInstruction" class="form-control"
-                            placeholder="Add more words, remove specific words, etc..." rows="3"
-                            :disabled="isEditing"></textarea>
+                        <textarea v-model="editInstruction" class="form-control" placeholder="Describe changes..."
+                            rows="3" :disabled="isEditing"></textarea>
                     </div>
 
-                    <button @click="handleEdit" class="btn btn-primary"
+                    <button @click="handleEdit" class="btn btn-primary text-sm"
                         :disabled="isEditing || !editInstruction.trim()">
-                        {{ isEditing ? 'Processing...' : 'Apply Changes' }}
+                        {{ isEditing ? 'Processing...' : 'Apply changes' }}
                     </button>
                 </div>
             </div>
 
-            <!-- Error message (shown regardless of pending state) -->
-            <div v-if="editError" class="bg-destructive/10 text-destructive p-3 rounded-lg mb-6">
+            <div v-if="editError" class="bg-destructive/10 text-destructive p-3 text-sm mb-4"
+                style="border-radius: 0.375rem;">
                 {{ editError }}
             </div>
 
-            <!-- Deck Mastery Progress (owner only) -->
-            <div v-if="isOwner && deckMastery" class="card mb-4 sm:mb-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl sm:text-2xl font-semibold text-foreground">Deck Mastery</h2>
-                    <span class="text-2xl font-bold" :class="{
-                        'text-green-500': deckMastery.masteryPercent >= 80,
-                        'text-blue-500': deckMastery.masteryPercent >= 50 && deckMastery.masteryPercent < 80,
-                        'text-yellow-500': deckMastery.masteryPercent >= 25 && deckMastery.masteryPercent < 50,
-                        'text-orange-500': deckMastery.masteryPercent < 25
-                    }">
+            <!-- Deck Mastery Progress -->
+            <div v-if="isOwner && deckMastery" class="card mb-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-medium text-foreground">Mastery</h2>
+                    <span class="text-sm font-semibold text-foreground">
                         {{ deckMastery.masteryPercent }}%
                     </span>
                 </div>
 
-                <!-- Progress bar -->
-                <div class="w-full h-3 bg-border rounded-full overflow-hidden mb-4">
-                    <div class="h-full bg-linear-to-r transition-all duration-700 rounded-full" :class="{
-                        'from-green-400 to-emerald-500': deckMastery.masteryPercent >= 80,
-                        'from-blue-400 to-cyan-500': deckMastery.masteryPercent >= 50 && deckMastery.masteryPercent < 80,
-                        'from-yellow-400 to-orange-500': deckMastery.masteryPercent >= 25 && deckMastery.masteryPercent < 50,
-                        'from-orange-400 to-red-400': deckMastery.masteryPercent < 25
-                    }" :style="{ width: deckMastery.masteryPercent + '%' }">
+                <div class="w-full h-1.5 bg-secondary overflow-hidden mb-4" style="border-radius: 1px;">
+                    <div class="h-full bg-primary transition-all duration-700"
+                        :style="{ width: deckMastery.masteryPercent + '%' }">
                     </div>
                 </div>
 
-                <!-- Mastery breakdown -->
-                <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center text-xs">
-                    <div class="p-2 bg-secondary rounded-lg">
-                        <div class="text-lg font-bold text-muted-foreground">{{ deckMastery.masteryBreakdown.new }}
+                <div class="grid grid-cols-5 gap-2 text-center text-xs">
+                    <div class="p-2 border border-border" style="border-radius: 0.25rem;">
+                        <div class="text-base font-semibold text-muted-foreground">{{ deckMastery.masteryBreakdown.new
+                        }}</div>
+                        <div class="text-muted-foreground text-xs">New</div>
+                    </div>
+                    <div class="p-2 border border-border" style="border-radius: 0.25rem;">
+                        <div class="text-base font-semibold text-foreground">{{ deckMastery.masteryBreakdown.learning }}
                         </div>
-                        <div class="text-muted-foreground">New</div>
+                        <div class="text-muted-foreground text-xs">Learning</div>
                     </div>
-                    <div class="p-2 bg-secondary rounded-lg">
-                        <div class="text-lg font-bold text-orange-500">{{ deckMastery.masteryBreakdown.learning }}</div>
-                        <div class="text-muted-foreground">Learning</div>
+                    <div class="p-2 border border-border" style="border-radius: 0.25rem;">
+                        <div class="text-base font-semibold text-foreground">{{ deckMastery.masteryBreakdown.familiar }}
+                        </div>
+                        <div class="text-muted-foreground text-xs">Familiar</div>
                     </div>
-                    <div class="p-2 bg-secondary rounded-lg">
-                        <div class="text-lg font-bold text-yellow-500">{{ deckMastery.masteryBreakdown.familiar }}</div>
-                        <div class="text-muted-foreground">Familiar</div>
+                    <div class="p-2 border border-border" style="border-radius: 0.25rem;">
+                        <div class="text-base font-semibold text-foreground">{{ deckMastery.masteryBreakdown.proficient
+                        }}</div>
+                        <div class="text-muted-foreground text-xs">Proficient</div>
                     </div>
-                    <div class="p-2 bg-secondary rounded-lg">
-                        <div class="text-lg font-bold text-blue-500">{{ deckMastery.masteryBreakdown.proficient }}</div>
-                        <div class="text-muted-foreground">Proficient</div>
-                    </div>
-                    <div class="p-2 bg-secondary rounded-lg">
-                        <div class="text-lg font-bold text-green-500">{{ deckMastery.masteryBreakdown.mastered }}</div>
-                        <div class="text-muted-foreground">Mastered</div>
+                    <div class="p-2 border border-border" style="border-radius: 0.25rem;">
+                        <div class="text-base font-semibold text-foreground">{{ deckMastery.masteryBreakdown.mastered }}
+                        </div>
+                        <div class="text-muted-foreground text-xs">Mastered</div>
                     </div>
                 </div>
             </div>
 
             <!-- Study Flashcards -->
-            <div class="card text-center">
-                <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-foreground">Study Flashcards</h2>
-                <p class="text-muted-foreground text-sm mb-4 sm:mb-6">
-                    Choose your mode and start studying with spaced repetition
-                </p>
+            <div class="card">
+                <h2 class="text-sm font-medium mb-3 text-foreground">Study</h2>
 
-                <!-- Mode Selection -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div class="grid grid-cols-2 gap-3 mb-4">
                     <label class="cursor-pointer">
                         <input type="radio" v-model="selectedMode" value="simple" class="hidden peer" />
-                        <div
-                            class="bg-secondary p-4 sm:p-6 rounded-lg border-2 border-border transition-all peer-checked:border-primary peer-checked:bg-primary/5">
-                            <h3 class="text-lg sm:text-xl font-semibold mb-2 text-foreground">Simple Mode</h3>
-                            <p class="text-muted-foreground text-sm">Direct meaning recall questions</p>
+                        <div class="p-3 border border-border transition-colors peer-checked:border-primary peer-checked:bg-primary/10"
+                            style="border-radius: 0.375rem;">
+                            <h3 class="text-sm font-medium text-foreground peer-checked:text-primary">Simple</h3>
+                            <p class="text-xs text-muted-foreground mt-0.5">Meaning recall</p>
                         </div>
                     </label>
 
                     <label class="cursor-pointer">
                         <input type="radio" v-model="selectedMode" value="master" class="hidden peer" />
-                        <div
-                            class="bg-secondary p-4 sm:p-6 rounded-lg border-2 border-border transition-all peer-checked:border-primary peer-checked:bg-primary/5">
-                            <h3 class="text-lg sm:text-xl font-semibold mb-2 text-foreground">Master Mode</h3>
-                            <p class="text-muted-foreground text-sm">Contextual usage and fill-in-the-blank</p>
+                        <div class="p-3 border border-border transition-colors peer-checked:border-primary peer-checked:bg-primary/10"
+                            style="border-radius: 0.375rem;">
+                            <h3 class="text-sm font-medium text-foreground peer-checked:text-primary">Master</h3>
+                            <p class="text-xs text-muted-foreground mt-0.5">Context & fill-in-blank</p>
                         </div>
                     </label>
                 </div>
 
-                <!-- Study Button (owner only) or Clone prompt -->
-                <div class="p-6 bg-secondary rounded-lg">
-                    <div v-if="isOwner">
-                        <p class="text-muted-foreground text-sm mb-4">
-                            📚 Cards are selected using spaced repetition. Difficult words appear more often, mastered
-                            words
-                            less frequently.
-                        </p>
-                        <button @click="studyWithSRS"
-                            class="btn btn-primary px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto"
-                            :disabled="generatingFlashcards">
-                            {{ generatingFlashcards ? 'Generating...' : 'Start Studying' }}
-                        </button>
-                    </div>
-                    <div v-else class="text-center">
-                        <p class="text-muted-foreground mb-4">
-                            🔒 Clone this deck to study with your own progress tracking
-                        </p>
-                        <button @click="handleClone"
-                            class="btn btn-primary px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto">
-                            Clone Deck to Study
-                        </button>
-                    </div>
+                <div v-if="isOwner">
+                    <p class="text-xs text-muted-foreground mb-3">
+                        Cards selected via spaced repetition. Difficult words appear more often.
+                    </p>
+                    <button @click="studyWithSRS" class="btn btn-primary text-sm w-full sm:w-auto"
+                        :disabled="generatingFlashcards">
+                        {{ generatingFlashcards ? 'Generating...' : 'Start studying' }}
+                    </button>
+                </div>
+                <div v-else>
+                    <p class="text-xs text-muted-foreground mb-3">
+                        Clone this deck to study with your own progress tracking.
+                    </p>
+                    <button @click="handleClone" class="btn btn-primary text-sm w-full sm:w-auto">
+                        Clone to study
+                    </button>
                 </div>
             </div>
         </div>
@@ -537,5 +500,5 @@ const handleClone = async (): Promise<void> => {
 </template>
 
 <style scoped>
-/* Minimal scoped styles - Tailwind handles most */
+/* Minimal */
 </style>

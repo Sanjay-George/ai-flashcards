@@ -1,50 +1,49 @@
 @import "tailwindcss";
 
 /* ============================================================
-   DESIGN TOKENS — Change colors here to re-theme the whole app
+   DESIGN TOKENS — Minimal, shadcn-inspired theme
    ============================================================ */
 @theme {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-    /* ── Primary: the brand / accent colour ─────────────────── */
-    --color-primary: hsl(262 83% 58%);
-    --color-primary-foreground: hsl(0 0% 98%);
-    --color-primary-gradient-end: hsl(271 76% 53%);
-    /* gradient pair */
+    /* ── Primary: dark purple accent ────────────────────────── */
+    --color-primary: hsl(271 65% 42%);
+    --color-primary-foreground: hsl(0 0% 100%);
+    --color-primary-gradient-end: hsl(271 65% 42%);
 
-    /* ── Secondary: subtle backgrounds, muted UI ─────────────── */
-    --color-secondary: hsl(240 4.8% 95.9%);
-    --color-secondary-foreground: hsl(240 5.9% 10%);
+    /* ── Secondary: subtle cool gray backgrounds ─────────────── */
+    --color-secondary: hsl(260 10% 96%);
+    --color-secondary-foreground: hsl(220 9% 12%);
 
     /* ── Surfaces ──────────────────────────────────────────────── */
     --color-background: hsl(0 0% 100%);
-    --color-foreground: hsl(240 10% 3.9%);
+    --color-foreground: hsl(220 9% 12%);
     --color-card: hsl(0 0% 100%);
-    --color-card-foreground: hsl(240 10% 3.9%);
+    --color-card-foreground: hsl(220 9% 12%);
 
     /* ── Muted / Accents ──────────────────────────────────────── */
-    --color-muted: hsl(240 4.8% 95.9%);
-    --color-muted-foreground: hsl(240 3.8% 46.1%);
-    --color-accent: hsl(240 4.8% 95.9%);
-    --color-accent-foreground: hsl(240 5.9% 10%);
+    --color-muted: hsl(260 10% 96%);
+    --color-muted-foreground: hsl(220 9% 46%);
+    --color-accent: hsl(271 65% 42%);
+    --color-accent-foreground: hsl(0 0% 100%);
 
     /* ── Destructive / danger ─────────────────────────────────── */
     --color-destructive: hsl(0 72% 51%);
     --color-destructive-foreground: hsl(0 0% 98%);
 
     /* ── Borders & inputs ─────────────────────────────────────── */
-    --color-border: hsl(240 5.9% 90%);
-    --color-input: hsl(240 5.9% 90%);
-    --color-ring: hsl(262 83% 58%);
+    --color-border: hsl(220 13% 91%);
+    --color-input: hsl(220 13% 91%);
+    --color-ring: hsl(271 65% 42%);
 
     /* ── Success / info semantic colours ───────────────────────── */
     --color-success: hsl(142 71% 45%);
     --color-success-foreground: hsl(0 0% 100%);
 
-    /* ── Border radius ────────────────────────────────────────── */
-    --radius-sm: 0.375rem;
-    --radius-md: 0.5rem;
-    --radius-lg: 0.75rem;
+    /* ── Border radius — straight / minimal ───────────────────── */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
 }
 
 /* ============================================================
@@ -54,7 +53,6 @@
     * {
         @apply border-border;
         -webkit-tap-highlight-color: transparent;
-        /* remove blue tap highlight on mobile */
     }
 
     html {
@@ -63,28 +61,25 @@
     }
 
     body {
-        @apply bg-secondary text-foreground font-sans antialiased;
+        @apply bg-background text-foreground font-sans antialiased;
         margin: 0;
         min-height: 100vh;
         min-height: 100dvh;
-        /* use dynamic viewport height on mobile */
+        letter-spacing: -0.011em;
     }
 
-    /* Better touch targets on mobile */
     button,
     a,
     select,
     input,
     textarea {
         min-height: 44px;
-        /* Apple HIG minimum */
     }
 
     input,
     textarea,
     select {
         font-size: 16px;
-        /* prevents iOS zoom on focus */
     }
 }
 
@@ -95,7 +90,8 @@
 
     /* ── Buttons ──────────────────────────────────────────────── */
     .btn {
-        @apply inline-flex items-center justify-center whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 no-underline shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
+        @apply inline-flex items-center justify-center whitespace-nowrap px-4 py-2 text-sm font-medium cursor-pointer transition-colors duration-150 no-underline disabled:opacity-50 disabled:cursor-not-allowed;
+        border-radius: 0.375rem;
         min-height: 44px;
     }
 
@@ -106,25 +102,30 @@
     }
 
     .btn-primary {
-        @apply bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] hover:shadow-md;
+        @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    }
+
+    .btn-outline {
+        @apply bg-transparent text-primary border border-primary hover:bg-primary/10;
     }
 
     .btn-secondary {
-        @apply bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 active:scale-[0.97];
+        @apply bg-background text-foreground border border-border hover:bg-secondary;
     }
 
     .btn-danger {
-        @apply bg-destructive text-destructive-foreground hover:bg-destructive/90 active:scale-[0.97];
+        @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
     }
 
     /* ── Cards ────────────────────────────────────────────────── */
     .card {
-        @apply bg-card text-card-foreground rounded-xl p-4 border border-border shadow-sm transition-all duration-200;
+        @apply bg-card text-card-foreground p-4 border border-border transition-colors duration-150;
+        border-radius: 0.5rem;
     }
 
     @media (min-width: 640px) {
         .card {
-            @apply p-6 hover:shadow-md;
+            @apply p-6;
         }
     }
 
@@ -134,16 +135,17 @@
     }
 
     .form-group label {
-        @apply block mb-2 text-sm font-medium text-foreground;
+        @apply block mb-1.5 text-sm font-medium text-foreground;
     }
 
     .form-control {
-        @apply w-full px-3 py-3 bg-background border border-input rounded-lg text-base transition-all duration-200 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/10;
+        @apply w-full px-3 py-2.5 bg-background border border-input text-base transition-colors duration-150 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-1 focus:ring-ring/20;
+        border-radius: 0.375rem;
     }
 
     @media (min-width: 640px) {
         .form-control {
-            @apply py-2.5 text-sm;
+            @apply py-2 text-sm;
         }
     }
 
@@ -153,11 +155,12 @@
 
     /* ── Tags ─────────────────────────────────────────────────── */
     .tag {
-        @apply inline-flex items-center px-2.5 py-0.5 bg-secondary border border-border rounded text-xs font-medium mr-2 mb-2 text-secondary-foreground;
+        @apply inline-flex items-center px-2 py-0.5 bg-secondary border border-border text-xs font-medium mr-1.5 mb-1.5 text-muted-foreground;
+        border-radius: 0.25rem;
     }
 
     .tag-primary {
-        @apply bg-primary/10 text-primary border-primary/20;
+        @apply bg-primary/8 text-primary border-primary/20;
     }
 
     /* ── Loading ──────────────────────────────────────────────── */
@@ -166,7 +169,8 @@
     }
 
     .spinner {
-        @apply w-10 h-10 mx-auto rounded-full border-[3px] border-border border-t-primary animate-spin;
+        @apply w-8 h-8 mx-auto border-2 border-border border-t-primary animate-spin;
+        border-radius: 9999px;
     }
 }
 
@@ -175,7 +179,6 @@
    ============================================================ */
 @layer utilities {
 
-    /* Mobile-first: single column; scales up with viewport */
     .grid-2 {
         @apply grid gap-4;
         grid-template-columns: 1fr;
@@ -183,7 +186,7 @@
 
     @media (min-width: 640px) {
         .grid-2 {
-            @apply gap-6;
+            @apply gap-5;
             grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
         }
     }
@@ -195,7 +198,7 @@
 
     @media (min-width: 640px) {
         .grid-3 {
-            @apply gap-6;
+            @apply gap-5;
             grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
         }
     }
@@ -204,7 +207,6 @@
         @apply flex justify-between items-center;
     }
 
-    /* Safe area padding for notched / dynamic-island phones */
     .safe-bottom {
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }

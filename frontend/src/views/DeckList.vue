@@ -51,13 +51,6 @@ const formatDate = (dateString: string): string => {
     })
 }
 
-// Get progress bar color based on mastery percentage
-const getMasteryColor = (percent: number): string => {
-    if (percent >= 80) return 'from-green-400 to-emerald-500'
-    if (percent >= 50) return 'from-blue-400 to-cyan-500'
-    if (percent >= 25) return 'from-yellow-400 to-orange-500'
-    return 'from-orange-400 to-red-400'
-}
 
 const getMasteryLabel = (percent: number): string => {
     if (percent >= 80) return 'Mastered'
@@ -69,113 +62,108 @@ const getMasteryLabel = (percent: number): string => {
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto">
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
-            <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Flashcard Decks</h1>
-            <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary w-full sm:w-auto">
-                + Create New Deck
+    <div>
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+            <h1 class="text-xl font-semibold text-foreground">Decks</h1>
+            <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary text-sm w-full sm:w-auto">
+                Create deck
             </RouterLink>
-            <RouterLink v-else to="/login" class="btn btn-primary w-full sm:w-auto">
-                Sign in to Create
+            <RouterLink v-else to="/login" class="btn btn-primary text-sm w-full sm:w-auto">
+                Sign in to create
             </RouterLink>
         </div>
 
         <div v-if="deckStore.loading" class="loading">
             <div class="spinner"></div>
-            <p class="mt-4">Loading decks...</p>
+            <p class="mt-4 text-sm">Loading decks...</p>
         </div>
 
-        <div v-else-if="deckStore.error" class="bg-destructive/10 text-destructive p-4 rounded-lg text-center">
+        <div v-else-if="deckStore.error" class="bg-destructive/10 text-destructive p-4 text-sm text-center"
+            style="border-radius: 0.375rem;">
             <p>Error loading decks: {{ deckStore.error }}</p>
         </div>
 
         <div v-else-if="deckStore.decks.length === 0"
-            class="text-center py-10 sm:py-16 px-4 sm:px-8 bg-card rounded-xl border border-border">
-            <div class="text-5xl sm:text-7xl mb-4">📚</div>
-            <h2 class="text-xl sm:text-2xl font-semibold text-foreground mb-2">No decks yet</h2>
-            <p class="text-muted-foreground mb-8">Create your first deck to start learning!</p>
-            <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary">
-                Create Deck
+            class="text-center py-12 sm:py-16 px-4 sm:px-8 border border-border" style="border-radius: 0.5rem;">
+            <h2 class="text-base font-medium text-foreground mb-1">No decks yet</h2>
+            <p class="text-sm text-muted-foreground mb-6">Create your first deck to start learning</p>
+            <RouterLink v-if="authStore.isAuthenticated" to="/create" class="btn btn-primary text-sm">
+                Create deck
             </RouterLink>
-            <RouterLink v-else to="/login" class="btn btn-primary">
-                Sign in to Create
+            <RouterLink v-else to="/login" class="btn btn-primary text-sm">
+                Sign in to create
             </RouterLink>
         </div>
 
-        <div v-else class="grid-2 overflow-hidden">
-            <div v-for="deck in deckStore.decks" :key="deck._id" class="card flex flex-col gap-3 sm:gap-4 min-w-0 overflow-hidden">
-                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+        <div v-else class="grid-2">
+            <div v-for="deck in deckStore.decks" :key="deck._id"
+                class="card flex flex-col gap-3 min-w-0 overflow-hidden">
+                <div class="flex justify-between items-start gap-2">
                     <div class="min-w-0">
-                        <h3 class="text-lg sm:text-xl font-semibold text-foreground truncate">{{ deck.title }}</h3>
-                        <!-- Ownership & visibility badges -->
-                        <div class="flex gap-2 mt-1">
+                        <h3 class="text-sm font-medium text-foreground truncate">{{ deck.title }}</h3>
+                        <div class="flex gap-1.5 mt-1">
                             <span v-if="isOwner(deck.userId)"
-                                class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground"
+                                style="border-radius: 0.25rem;">
                                 Owner
                             </span>
-                            <span v-else
-                                class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            <span v-else class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground"
+                                style="border-radius: 0.25rem;">
                                 Public
                             </span>
                             <span v-if="deck.isPublic && isOwner(deck.userId)"
-                                class="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                                🌐 Shared
+                                class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground"
+                                style="border-radius: 0.25rem;">
+                                Shared
                             </span>
                         </div>
                     </div>
-                    <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold">
+                    <span class="text-xs text-muted-foreground border border-border px-2 py-0.5 shrink-0"
+                        style="border-radius: 0.25rem;">
                         {{ deck.lexemes.length }} words
                     </span>
                 </div>
 
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-1">
                     <span v-for="tag in deck.tags" :key="tag" class="tag tag-primary">
                         {{ tag }}
                     </span>
                 </div>
 
                 <!-- Mastery Progress Bar (owner only) -->
-                <div v-if="isOwner(deck.userId) && progressStore.getDeckMastery(deck._id)" class="mt-1">
+                <div v-if="isOwner(deck.userId) && progressStore.getDeckMastery(deck._id)" class="mt-0.5">
                     <div class="flex justify-between items-center mb-1">
-                        <span class="text-xs font-medium text-muted-foreground">
+                        <span class="text-xs text-muted-foreground">
                             {{ getMasteryLabel(progressStore.getDeckMastery(deck._id)!.masteryPercent) }}
                         </span>
-                        <span class="text-xs font-semibold text-foreground">
+                        <span class="text-xs font-medium text-foreground">
                             {{ progressStore.getDeckMastery(deck._id)!.masteryPercent }}%
                         </span>
                     </div>
-                    <div class="w-full h-2 bg-border rounded-full overflow-hidden">
-                        <div class="h-full bg-linear-to-r transition-all duration-500 rounded-full"
-                            :class="getMasteryColor(progressStore.getDeckMastery(deck._id)!.masteryPercent)"
+                    <div class="w-full h-1.5 bg-secondary overflow-hidden" style="border-radius: 1px;">
+                        <div class="h-full bg-primary transition-all duration-500"
                             :style="{ width: progressStore.getDeckMastery(deck._id)!.masteryPercent + '%' }">
                         </div>
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-1 text-sm text-muted-foreground">
-                    <span>Created: {{ formatDate(deck.createdAt) }}</span>
-                    <span>Updated: {{ formatDate(deck.updatedAt) }}</span>
+                <div class="text-xs text-muted-foreground">
+                    <span>{{ formatDate(deck.updatedAt) }}</span>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-2 mt-auto">
-                    <RouterLink :to="`/deck/${deck._id}`" class="btn btn-secondary flex-1 text-sm py-2">
-                        View Details
+                <div class="flex gap-2 mt-auto">
+                    <RouterLink :to="`/deck/${deck._id}`" class="btn btn-secondary flex-1 text-xs py-1.5">
+                        View
                     </RouterLink>
-                    <!-- Owner actions -->
                     <button v-if="isOwner(deck.userId)" @click="handleDelete(deck._id)"
-                        class="btn btn-danger flex-1 text-sm py-2">
+                        class="btn flex-1 text-xs py-1.5 border border-destructive/50 text-destructive transition-colors">
                         Delete
                     </button>
-                    <!-- Non-owner: Clone button -->
-                    <button v-else @click="handleClone(deck._id)" class="btn btn-primary flex-1 text-sm py-2">
-                        Clone to Study
+                    <button v-else @click="handleClone(deck._id)" class="btn btn-primary flex-1 text-xs py-1.5">
+                        Clone
                     </button>
                 </div>
             </div>
         </div>
     </div>
 </template>
-
-<style scoped>
-/* Minimal scoped styles - Tailwind handles most */
-</style>

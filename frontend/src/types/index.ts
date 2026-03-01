@@ -200,3 +200,95 @@ export interface SessionCompleteResponse {
     currentStreak: number;
     longestStreak: number;
 }
+
+// ========== Conversation Practice Types ==========
+
+export type ConversationDifficulty = 'easy' | 'medium' | 'hard';
+
+export type ConversationTopic =
+    | 'restaurant'
+    | 'travel'
+    | 'shopping'
+    | 'job_interview'
+    | 'hotel'
+    | 'directions'
+    | 'doctor'
+    | 'phone_call'
+    | 'small_talk'
+    | 'airport';
+
+export interface ConversationMessage {
+    role: 'ai' | 'user';
+    content: string;
+    translation?: string;
+    timestamp?: string;
+}
+
+export interface ConversationStartRequest {
+    language: string;
+    difficulty: ConversationDifficulty;
+    topic: ConversationTopic | string;
+}
+
+export interface ConversationStartResponse {
+    context: string;
+    ai_message: string;
+    ai_message_translation: string;
+}
+
+export interface ConversationNextRequest {
+    language: string;
+    difficulty: ConversationDifficulty;
+    topic: ConversationTopic | string;
+    context: string;
+    conversation_history: ConversationMessage[];
+    user_message: string;
+}
+
+export interface ConversationNextResponse {
+    ai_message: string;
+    ai_message_translation: string;
+    should_end: boolean;
+    hint?: string | null;
+}
+
+export interface FeedbackPoint {
+    category: 'grammar' | 'vocabulary' | 'fluency';
+    original: string;
+    corrected: string;
+    explanation: string;
+}
+
+export interface ConversationFeedbackRequest {
+    language: string;
+    difficulty: ConversationDifficulty;
+    topic: ConversationTopic | string;
+    transcript: ConversationMessage[];
+}
+
+export interface ConversationFeedbackResponse {
+    overall_rating: number;
+    feedback_points: FeedbackPoint[];
+    summary: string;
+}
+
+export interface ConversationSession {
+    _id: string;
+    userId: string;
+    language: string;
+    difficulty: ConversationDifficulty;
+    topic: string;
+    context: string;
+    messages: ConversationMessage[];
+    feedback?: ConversationFeedbackResponse;
+    status: 'active' | 'completed';
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ConversationTopicOption {
+    id: ConversationTopic;
+    label: string;
+    emoji: string;
+    description: string;
+}
