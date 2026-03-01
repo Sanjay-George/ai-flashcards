@@ -153,7 +153,7 @@ const closeMenu = () => {
             </div>
         </main>
 
-        <footer class="text-muted-foreground py-6 text-center mt-auto border-t border-border text-xs safe-bottom">
+        <footer class="text-muted-foreground mb-1 text-center text-xs safe-bottom flex items-center">
             <div class="max-w-5xl mx-auto px-4 sm:px-6 w-full">
                 <p>&copy; 2026 Flashcards AI</p>
             </div>

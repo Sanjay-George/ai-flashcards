@@ -480,7 +480,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
                     <p class="text-xs font-medium text-foreground mb-2">Ask about this card</p>
 
                     <!-- Chat History -->
-                    <div v-if="chatHistory.length > 0" class="mb-3 border border-border p-3 max-h-72 overflow-y-auto"
+                    <div v-if="chatHistory.length > 0" class="mb-3 border border-border p-3 max-h-100 overflow-y-auto"
                         style="border-radius: 0.375rem;">
                         <div v-for="(message, index) in chatHistory" :key="index" :class="[
                             'mb-2 p-2.5 text-sm',
@@ -490,7 +490,7 @@ const askFlashcardQuestion = async (): Promise<void> => {
                                 {{ message.role === 'user' ? 'You' : 'Tutor' }}
                             </div>
                             <div v-if="message.role === 'user'" class="whitespace-pre-wrap text-sm">{{ message.content
-                            }}</div>
+                                }}</div>
                             <div v-else class="text-sm markdown-content" v-html="renderMarkdown(message.content)"></div>
                         </div>
                     </div>
