@@ -42,7 +42,8 @@ const emit = defineEmits<{
 
         <div v-if="showTranscriptionConfirm" class="mb-2 p-3 border border-foreground" style="border-radius: 0.375rem;">
             <p class="text-xs font-medium text-foreground mb-1.5">Transcribed:</p>
-            <p class="text-sm text-foreground bg-secondary p-2 mb-2 border border-border" style="border-radius: 0.25rem;">
+            <p class="text-sm text-foreground bg-secondary p-2 mb-2 border border-border"
+                style="border-radius: 0.25rem;">
                 {{ transcribedText }}
             </p>
             <div class="flex gap-1.5">
@@ -71,14 +72,15 @@ const emit = defineEmits<{
                 </svg>
             </button>
 
-            <input :value="userInput" @input="emit('update:userInput', ($event.target as HTMLInputElement).value)" @keydown.enter="emit('submit')"
-                :disabled="loading"
+            <input :value="userInput" @input="emit('update:userInput', ($event.target as HTMLInputElement).value)"
+                @keydown.enter="emit('submit')" :disabled="loading"
                 class="flex-1 px-3 py-2 border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring bg-background"
-                style="border-radius: 0.375rem;" :placeholder="isRecording ? 'Listening...' : 'Describe your scenario...'"
-                autocomplete="off" />
+                style="border-radius: 0.375rem;"
+                :placeholder="isRecording ? 'Listening...' : 'Describe your scenario...'" autocomplete="off" />
 
             <button @click="emit('submit')" :disabled="!userInput.trim() || loading"
-                class="btn btn-primary p-2 shrink-0 disabled:opacity-30 cursor-pointer" title="Start with this scenario">
+                class="btn btn-primary p-2 shrink-0 disabled:opacity-30 cursor-pointer"
+                title="Start with this scenario">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

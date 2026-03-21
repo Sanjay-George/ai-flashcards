@@ -45,7 +45,8 @@ const emit = defineEmits<{
         <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
                 <h2 class="text-sm font-medium text-foreground">{{ topicLabel }}</h2>
-                <span class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground" style="border-radius: 0.25rem;">
+                <span class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground"
+                    style="border-radius: 0.25rem;">
                     {{ selectedLanguageLabel }} · {{ selectedDifficulty }}
                 </span>
             </div>
@@ -86,7 +87,8 @@ const emit = defineEmits<{
                         @click="speakingMessageIdx === idx ? emit('stopSpeaking') : emit('speakMessage', msg.content, idx)"
                         class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                         :title="speakingMessageIdx === idx ? 'Stop' : 'Listen'">
-                        <svg v-if="speakingMessageIdx !== idx" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg v-if="speakingMessageIdx !== idx" class="w-3 h-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M15.536 8.464a5 5 0 010 7.072M11 5L6 9H2v6h4l5 4V5z" />
                         </svg>
@@ -104,15 +106,20 @@ const emit = defineEmits<{
                 </div>
             </div>
 
-            <div v-if="sendingMessage" class="mr-auto bg-secondary border border-border p-3 max-w-[75%]" style="border-radius: 0.5rem;">
+            <div v-if="sendingMessage" class="mr-auto bg-secondary border border-border p-3 max-w-[75%]"
+                style="border-radius: 0.5rem;">
                 <div class="flex gap-1">
-                    <span class="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                    <span class="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                    <span class="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                    <span class="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce"
+                        style="animation-delay: 0ms"></span>
+                    <span class="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce"
+                        style="animation-delay: 150ms"></span>
+                    <span class="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce"
+                        style="animation-delay: 300ms"></span>
                 </div>
             </div>
 
-            <div v-if="hint" class="mx-auto max-w-[80%] p-2 border border-border text-center text-xs text-muted-foreground"
+            <div v-if="hint"
+                class="mx-auto max-w-[80%] p-2 border border-border text-center text-xs text-muted-foreground"
                 style="border-radius: 0.375rem;">
                 {{ hint }}
             </div>
@@ -124,13 +131,15 @@ const emit = defineEmits<{
             </div>
         </div>
 
-        <div v-if="error" class="mb-2 p-2 bg-destructive/10 text-destructive text-xs text-center" style="border-radius: 0.375rem;">
+        <div v-if="error" class="mb-2 p-2 bg-destructive/10 text-destructive text-xs text-center"
+            style="border-radius: 0.375rem;">
             {{ error }}
         </div>
 
         <div v-if="showTranscriptionConfirm" class="mb-2 p-3 border border-foreground" style="border-radius: 0.375rem;">
             <p class="text-xs font-medium text-foreground mb-1.5">Transcribed:</p>
-            <p class="text-sm text-foreground bg-secondary p-2 mb-2 border border-border" style="border-radius: 0.25rem;">
+            <p class="text-sm text-foreground bg-secondary p-2 mb-2 border border-border"
+                style="border-radius: 0.25rem;">
                 {{ transcribedText }}
             </p>
             <div class="flex gap-1.5">
@@ -181,8 +190,8 @@ const emit = defineEmits<{
                 </svg>
             </button>
 
-            <input :value="userInput" @input="emit('update:userInput', ($event.target as HTMLInputElement).value)" @keydown.enter="emit('sendMessage')"
-                :disabled="sendingMessage || conversationEnded"
+            <input :value="userInput" @input="emit('update:userInput', ($event.target as HTMLInputElement).value)"
+                @keydown.enter="emit('sendMessage')" :disabled="sendingMessage || conversationEnded"
                 class="flex-1 px-3 py-2 border border-border text-sm focus:outline-none focus:ring-1 focus:ring-ring bg-background"
                 style="border-radius: 0.375rem;" :placeholder="isRecording ? 'Listening...' : 'Type your response...'"
                 autocomplete="off" />

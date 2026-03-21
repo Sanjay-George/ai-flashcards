@@ -52,8 +52,8 @@ const emit = defineEmits<{
             <div class="mb-5">
                 <p class="block text-xs font-medium text-muted-foreground mb-2">Language</p>
                 <div class="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-                    <button v-for="lang in languageOptions" :key="lang.code" @click="emit('update:selectedLanguage', lang.code)"
-                        :class="[
+                    <button v-for="lang in languageOptions" :key="lang.code"
+                        @click="emit('update:selectedLanguage', lang.code)" :class="[
                             'px-2.5 py-2 border text-sm transition-colors text-center cursor-pointer',
                             selectedLanguage === lang.code
                                 ? 'border-primary bg-primary/10 text-primary'
@@ -68,8 +68,8 @@ const emit = defineEmits<{
             <div class="mb-5">
                 <p class="block text-xs font-medium text-muted-foreground mb-2">Difficulty</p>
                 <div class="grid grid-cols-3 gap-2">
-                    <button v-for="diff in difficultyOptions" :key="diff.id" @click="emit('update:selectedDifficulty', diff.id)"
-                        :class="[
+                    <button v-for="diff in difficultyOptions" :key="diff.id"
+                        @click="emit('update:selectedDifficulty', diff.id)" :class="[
                             'px-3 py-3 border text-center transition-colors cursor-pointer',
                             selectedDifficulty === diff.id
                                 ? 'border-primary bg-primary/10 text-primary'
@@ -86,19 +86,6 @@ const emit = defineEmits<{
             <div class="mb-5">
                 <p class="block text-xs font-medium text-muted-foreground mb-2">Topic</p>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                    <button v-for="topic in topicOptions" :key="topic.id" @click="emit('update:selectedTopic', topic.id)" :class="[
-                        'px-2.5 py-2.5 border text-left transition-colors cursor-pointer',
-                        selectedTopic === topic.id
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border hover:bg-secondary text-foreground'
-                    ]" style="border-radius: 0.25rem;">
-                        <span class="text-base">{{ topic.emoji }}</span>
-                        <span class="block text-sm font-medium mt-0.5">{{ topic.label }}</span>
-                        <span class="block text-xs"
-                            :class="selectedTopic === topic.id ? 'text-primary/60' : 'text-muted-foreground'">{{
-                                topic.description }}</span>
-                    </button>
-
                     <button @click="emit('update:selectedTopic', customTopicId)" :class="[
                         'px-2.5 py-2.5 border text-left transition-colors cursor-pointer',
                         isCustomTopicSelected
@@ -112,10 +99,27 @@ const emit = defineEmits<{
                             Describe your own topic before starting
                         </span>
                     </button>
+
+                    <button v-for="topic in topicOptions" :key="topic.id"
+                        @click="emit('update:selectedTopic', topic.id)" :class="[
+                            'px-2.5 py-2.5 border text-left transition-colors cursor-pointer',
+                            selectedTopic === topic.id
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border hover:bg-secondary text-foreground'
+                        ]" style="border-radius: 0.25rem;">
+                        <span class="text-base">{{ topic.emoji }}</span>
+                        <span class="block text-sm font-medium mt-0.5">{{ topic.label }}</span>
+                        <span class="block text-xs"
+                            :class="selectedTopic === topic.id ? 'text-primary/60' : 'text-muted-foreground'">{{
+                                topic.description }}</span>
+                    </button>
+
+
                 </div>
             </div>
 
-            <div v-if="error" class="mb-3 p-2.5 bg-destructive/10 text-destructive text-sm" style="border-radius: 0.375rem;">
+            <div v-if="error" class="mb-3 p-2.5 bg-destructive/10 text-destructive text-sm"
+                style="border-radius: 0.375rem;">
                 {{ error }}
             </div>
 

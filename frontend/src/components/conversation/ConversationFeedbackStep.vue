@@ -50,7 +50,8 @@ const emit = defineEmits<{
             <h2 class="text-sm font-medium text-foreground mb-2">Improvements</h2>
             <div v-for="(point, idx) in feedback.feedback_points" :key="idx" class="card p-3">
                 <div class="flex items-center gap-1.5 mb-2">
-                    <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider border border-border px-1.5 py-0.5"
+                    <span
+                        class="text-xs font-medium text-muted-foreground uppercase tracking-wider border border-border px-1.5 py-0.5"
                         style="border-radius: 0.25rem;">
                         {{ feedbackCategoryLabel(point.category) }}
                     </span>
@@ -71,7 +72,8 @@ const emit = defineEmits<{
         </div>
 
         <details class="card p-3 mb-4">
-            <summary class="cursor-pointer text-xs font-medium text-foreground hover:text-muted-foreground transition-colors">
+            <summary
+                class="cursor-pointer text-xs font-medium text-foreground hover:text-muted-foreground transition-colors">
                 View transcript with feedback
             </summary>
             <div class="mt-3 space-y-1.5 max-h-100 overflow-y-auto">
@@ -86,13 +88,16 @@ const emit = defineEmits<{
                     </span>
                     <p class="mt-0.5 whitespace-pre-wrap">{{ msg.content }}</p>
 
-                    <div v-if="msg.role === 'user' && getMessageFeedback(idx)" class="mt-2 pt-2 border-t border-border space-y-1.5">
-                        <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider border border-border px-1.5 py-0.5"
+                    <div v-if="msg.role === 'user' && getMessageFeedback(idx)"
+                        class="mt-2 pt-2 border-t border-border space-y-1.5">
+                        <span
+                            class="text-xs font-medium text-muted-foreground uppercase tracking-wider border border-border px-1.5 py-0.5"
                             style="border-radius: 0.25rem;">
                             {{ feedbackCategoryLabel(getMessageFeedback(idx)!.category) }}
                         </span>
 
-                        <div v-if="getMessageFeedback(idx)!.corrected !== getMessageFeedback(idx)!.original" class="space-y-1 text-xs">
+                        <div v-if="getMessageFeedback(idx)!.corrected !== getMessageFeedback(idx)!.original"
+                            class="space-y-1 text-xs">
                             <div class="flex items-start gap-2">
                                 <span class="text-destructive mt-0.5 shrink-0">&times;</span>
                                 <span class="line-through opacity-60">{{ getMessageFeedback(idx)!.original }}</span>
@@ -118,11 +123,13 @@ const emit = defineEmits<{
                 Extract vocabulary from this conversation into a deck.
             </p>
 
-            <div v-if="deckCreated" class="p-2 border border-green-500/30 text-green-700 text-xs mb-2" style="border-radius: 0.25rem;">
+            <div v-if="deckCreated" class="p-2 border border-green-500/30 text-green-700 text-xs mb-2"
+                style="border-radius: 0.25rem;">
                 Deck created. Redirecting...
             </div>
 
-            <div v-if="deckCreateError" class="p-2 bg-destructive/10 text-destructive text-xs mb-2" style="border-radius: 0.25rem;">
+            <div v-if="deckCreateError" class="p-2 bg-destructive/10 text-destructive text-xs mb-2"
+                style="border-radius: 0.25rem;">
                 {{ deckCreateError }}
             </div>
 
