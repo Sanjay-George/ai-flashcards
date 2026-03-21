@@ -209,8 +209,9 @@ onMounted(async () => {
                         <button class="btn btn-secondary text-xs py-1.5"
                             :disabled="creatingDeckForSession === session._id"
                             @click="handleCreateDeckFromSession(session)">
-                            {{ creatingDeckForSession === session._id ? 'Creating deck...' : 'Create deck from
-                            conversation' }}
+                            {{ creatingDeckForSession === session._id
+                                ? 'Creating deck...' :
+                                'Create deck from conversation' }}
                         </button>
                         <button class="btn text-xs py-1.5 border border-destructive/50 text-destructive"
                             :disabled="deletingSessionId === session._id" @click="handleDeleteSession(session._id)">
