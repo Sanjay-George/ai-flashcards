@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useProgressStore } from './stores/progressStore'
@@ -7,6 +7,30 @@ import { useProgressStore } from './stores/progressStore'
 const authStore = useAuthStore()
 const progressStore = useProgressStore()
 const mobileMenuOpen = ref(false)
+
+const WARMUP_LAST_RUN_KEY = 'serviceWarmupLastRunAt'
+const WARMUP_INTERVAL_MS = 60 * 60 * 1000
+
+const runServiceWarmup = async () => {
+    const backendBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9051'
+    const aiBaseUrl = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:9052'
+
+    await Promise.allSettled([
+        fetch(`${backendBaseUrl.replace(/\/$/, '')}/health`),
+        fetch(`${aiBaseUrl.replace(/\/$/, '')}/health`),
+    ])
+}
+
+onMounted(() => {
+    const now = Date.now()
+    const lastRunRaw = localStorage.getItem(WARMUP_LAST_RUN_KEY)
+    const lastRun = lastRunRaw ? Number(lastRunRaw) : 0
+
+    if (!Number.isFinite(lastRun) || now - lastRun >= WARMUP_INTERVAL_MS) {
+        localStorage.setItem(WARMUP_LAST_RUN_KEY, String(now))
+        void runServiceWarmup()
+    }
+})
 
 // Fetch progress when user logs in
 watch(() => authStore.isAuthenticated, (isAuth) => {
