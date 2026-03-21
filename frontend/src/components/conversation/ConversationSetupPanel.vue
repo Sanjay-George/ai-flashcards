@@ -27,6 +27,7 @@ defineProps<{
     selectedTopic: string
     customTopicId: string
     isCustomTopicSelected: boolean
+    showHistoryButton?: boolean
     loading: boolean
     error: string | null
 }>()
@@ -36,13 +37,19 @@ const emit = defineEmits<{
     (e: 'update:selectedDifficulty', value: string): void
     (e: 'update:selectedTopic', value: string): void
     (e: 'start'): void
+    (e: 'openHistory'): void
 }>()
 </script>
 
 <template>
     <div>
         <div class="mb-6">
-            <h1 class="text-xl font-semibold text-foreground mb-1">Conversation practice</h1>
+            <div class="flex items-center justify-between gap-2 mb-1">
+                <h1 class="text-xl font-semibold text-foreground">Conversation practice</h1>
+                <button v-if="showHistoryButton" class="btn btn-secondary text-xs py-1.5" @click="emit('openHistory')">
+                    View previous conversations
+                </button>
+            </div>
             <p class="text-sm text-muted-foreground">
                 Practice real conversations with AI.
             </p>

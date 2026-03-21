@@ -7,6 +7,7 @@ import EditGeneratedDeck from '../views/EditGeneratedDeck.vue'
 import DeckDetail from '../views/DeckDetail.vue'
 import StudySession from '../views/StudySession.vue'
 import ConversationPractice from '../views/ConversationPractice.vue'
+import ConversationHistory from '../views/ConversationHistory.vue'
 
 const routes: RouteRecordRaw[] = [
     {
@@ -52,6 +53,12 @@ const routes: RouteRecordRaw[] = [
         path: '/conversation',
         name: 'ConversationPractice',
         component: ConversationPractice,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/conversation/history',
+        name: 'ConversationHistory',
+        component: ConversationHistory,
         meta: { requiresAuth: true }
     }
 ]

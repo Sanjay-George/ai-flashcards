@@ -355,10 +355,11 @@ const getMessageFeedback = (messageIndex: number) => {
             :difficulty-options="DIFFICULTY_OPTIONS" :topic-options="TOPIC_OPTIONS"
             :selected-language="selectedLanguage" :selected-difficulty="selectedDifficulty"
             :selected-topic="selectedTopic" :custom-topic-id="CUSTOM_TOPIC_ID"
-            :is-custom-topic-selected="isCustomTopicSelected" :loading="store.loading" :error="store.error"
-            @update:selected-language="selectedLanguage = $event"
+            :is-custom-topic-selected="isCustomTopicSelected" :show-history-button="true" :loading="store.loading"
+            :error="store.error" @update:selected-language="selectedLanguage = $event"
             @update:selected-difficulty="selectedDifficulty = $event as ConversationDifficulty"
-            @update:selected-topic="selectedTopic = $event" @start="startConversation" />
+            @update:selected-topic="selectedTopic = $event" @start="startConversation"
+            @open-history="router.push('/conversation/history')" />
 
         <ConversationScenarioStep v-if="phase === 'scenario'" :selected-language-label="selectedLanguageLabel"
             :selected-difficulty="selectedDifficulty" :error="store.error"

@@ -233,6 +233,14 @@ export const useConversationStore = defineStore('conversation', () => {
     }
 
     /**
+     * Fetch a specific session by id (without mutating active conversation state)
+     */
+    const fetchSessionById = async (sessionId: string): Promise<ConversationSession> => {
+        const response = await api.get<ConversationSession>(`/conversations/${sessionId}`)
+        return response.data
+    }
+
+    /**
      * Load a specific past session
      */
     const loadSession = async (sessionId: string): Promise<void> => {
@@ -240,8 +248,7 @@ export const useConversationStore = defineStore('conversation', () => {
         error.value = null
 
         try {
-            const response = await api.get<ConversationSession>(`/conversations/${sessionId}`)
-            const session = response.data
+            const session = await fetchSessionById(sessionId)
             currentSession.value = session
             language.value = session.language
             difficulty.value = session.difficulty
@@ -255,6 +262,46 @@ export const useConversationStore = defineStore('conversation', () => {
         } finally {
             loading.value = false
         }
+    }
+
+    /**
+     * Delete a past conversation session
+     */
+    const deletePastSession = async (sessionId: string): Promise<void> => {
+        loading.value = true
+        error.value = null
+
+        try {
+            await api.delete(`/conversations/${sessionId}`)
+            pastSessions.value = pastSessions.value.filter(session => session._id !== sessionId)
+            if (currentSession.value?._id === sessionId) {
+                resetConversation()
+            }
+        } catch (e: any) {
+            error.value = e?.response?.data?.error || e.message || 'Failed to delete conversation'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
+     * Extract vocabulary from a specific saved session
+     */
+    const extractVocabularyFromSession = async (sessionId: string): Promise<{ title: string; tags: string[]; lexemes: any[] }> => {
+        const session = await fetchSessionById(sessionId)
+        if (!session.messages || session.messages.length < 2) {
+            throw new Error('Not enough conversation messages to extract vocabulary')
+        }
+
+        const response = await aiApi.post('/conversation/extract_vocabulary', {
+            language: session.language,
+            difficulty: session.difficulty,
+            topic: session.topic,
+            transcript: session.messages,
+        })
+
+        return response.data
     }
 
     /**
@@ -314,8 +361,11 @@ export const useConversationStore = defineStore('conversation', () => {
         sendMessage,
         getFeedback,
         extractVocabulary,
+        extractVocabularyFromSession,
         fetchPastSessions,
+        fetchSessionById,
         loadSession,
+        deletePastSession,
         resetConversation,
     }
 })
