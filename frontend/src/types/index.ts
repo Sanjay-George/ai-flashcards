@@ -259,6 +259,14 @@ export interface FeedbackPoint {
     explanation: string;
 }
 
+export interface MessageFeedback {
+    transcript_message_index: number;
+    category: 'grammar' | 'vocabulary' | 'fluency';
+    original: string;
+    corrected: string;
+    explanation: string;
+}
+
 export interface ConversationFeedbackRequest {
     language: string;
     difficulty: ConversationDifficulty;
@@ -269,6 +277,7 @@ export interface ConversationFeedbackRequest {
 export interface ConversationFeedbackResponse {
     overall_rating: number;
     feedback_points: FeedbackPoint[];
+    message_feedback?: MessageFeedback[];
     summary: string;
 }
 

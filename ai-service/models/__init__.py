@@ -1,5 +1,5 @@
 """Pydantic models for AI service requests and responses"""
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
 
@@ -135,6 +135,14 @@ class FeedbackPoint(BaseModel):
     explanation: str
 
 
+class MessageFeedback(BaseModel):
+    transcript_message_index: int  # Index in full transcript array
+    category: str  # 'grammar', 'vocabulary', 'fluency'
+    original: str
+    corrected: str
+    explanation: str
+
+
 class ConversationFeedbackRequest(BaseModel):
     language: str
     difficulty: str
@@ -145,6 +153,7 @@ class ConversationFeedbackRequest(BaseModel):
 class ConversationFeedbackResponse(BaseModel):
     overall_rating: int  # 1-5
     feedback_points: List[FeedbackPoint]
+    message_feedback: List[MessageFeedback] = Field(default_factory=list)
     summary: str
 
 

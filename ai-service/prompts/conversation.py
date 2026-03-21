@@ -83,6 +83,7 @@ Focus on:
 1. **Grammar / Syntax Corrections**: Identify specific errors in the user's messages. Show the incorrect form and the corrected form.
 2. **Vocabulary Suggestions**: Suggest better or more natural word choices where applicable.
 3. **Fluency Observations**: Comment on sentence structure, naturalness, and flow.
+4. **Per-message Feedback**: For EACH user message in the transcript, provide a correction-oriented entry tied to the transcript index.
 
 Rules:
 - Provide exactly 2-3 actionable feedback points. No generic praise.
@@ -91,6 +92,9 @@ Rules:
 - If the user made very few errors, suggest ways to use more advanced constructions.
 - Be encouraging but specific — no vague "good job" statements.
 - Rate overall performance on a scale of 1-5 stars.
+- In `message_feedback`, include one item for every user message in `transcript`.
+- `transcript_message_index` must be the index in the full transcript array (0-based) where that user message appears.
+- If a message is already correct/natural, keep `corrected` equal to `original` and explain briefly how to make it more advanced or natural.
 
 Output JSON:
 {
@@ -113,6 +117,22 @@ Output JSON:
       "original": "Ich will bezahlen",
       "corrected": "Ich würde gerne bezahlen",
       "explanation": "Using 'würde gerne' (would like to) instead of 'will' (want to) sounds more polite and natural in a restaurant setting."
+    }
+  ],
+  "message_feedback": [
+    {
+      "transcript_message_index": 1,
+      "category": "grammar",
+      "original": "Ich möchte ein Wasser bitte",
+      "corrected": "Ich möchte ein Wasser, bitte.",
+      "explanation": "Comma before 'bitte' at the end sounds more natural in written German."
+    },
+    {
+      "transcript_message_index": 3,
+      "category": "fluency",
+      "original": "Ich will bezahlen",
+      "corrected": "Ich würde gerne bezahlen",
+      "explanation": "'würde gerne' sounds more polite and natural in this situation."
     }
   ],
   "summary": "Brief 1-2 sentence overall assessment of the conversation performance."

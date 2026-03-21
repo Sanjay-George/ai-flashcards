@@ -14,9 +14,18 @@ export interface IFeedbackPoint {
     explanation: string;
 }
 
+export interface IMessageFeedback {
+    transcript_message_index: number;
+    category: 'grammar' | 'vocabulary' | 'fluency';
+    original: string;
+    corrected: string;
+    explanation: string;
+}
+
 export interface IConversationFeedback {
     overall_rating: number;  // 1-5
     feedback_points: IFeedbackPoint[];
+    message_feedback?: IMessageFeedback[];
     summary: string;
 }
 
@@ -47,9 +56,18 @@ const FeedbackPointSchema = new Schema<IFeedbackPoint>({
     explanation: { type: String, required: true }
 });
 
+const MessageFeedbackSchema = new Schema<IMessageFeedback>({
+    transcript_message_index: { type: Number, required: true, min: 0 },
+    category: { type: String, enum: ['grammar', 'vocabulary', 'fluency'], required: true },
+    original: { type: String, required: true },
+    corrected: { type: String, required: true },
+    explanation: { type: String, required: true }
+});
+
 const ConversationFeedbackSchema = new Schema<IConversationFeedback>({
     overall_rating: { type: Number, required: true, min: 1, max: 5 },
     feedback_points: [FeedbackPointSchema],
+    message_feedback: { type: [MessageFeedbackSchema], default: [] },
     summary: { type: String, required: true }
 });
 
