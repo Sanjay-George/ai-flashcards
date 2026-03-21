@@ -51,9 +51,7 @@ const ttsSupported = ref(typeof window !== 'undefined' && 'speechSynthesis' in w
 const isSpeaking = ref(false)
 
 const languageMap: Record<string, string> = {
-    de: 'de-DE', es: 'es-ES', fr: 'fr-FR', it: 'it-IT', pt: 'pt-PT',
-    nl: 'nl-NL', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', ru: 'ru-RU',
-    ar: 'ar-SA', hi: 'hi-IN',
+    de: 'de-DE', fr: 'fr-FR', hi: 'hi-IN',
 }
 
 const speakText = (text: string) => {
@@ -80,9 +78,7 @@ onUnmounted(() => {
 // Language-specific reference URLs
 const referenceUrls: Record<string, { baseUrl: string; name: string }> = {
     de: { baseUrl: 'https://www.verbformen.de/konjugation/?w=', name: 'Verbformen.de' },
-    es: { baseUrl: 'https://www.spanishdict.com/translate/', name: 'SpanishDict' },
     fr: { baseUrl: 'https://www.wordreference.com/fren/', name: 'WordReference' },
-    // Add more languages as needed
 }
 
 onMounted(async () => {

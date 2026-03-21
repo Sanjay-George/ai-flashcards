@@ -33,16 +33,7 @@ export const DIFFICULTY_OPTIONS = [
 // Language options (matching what the app already supports)
 export const LANGUAGE_OPTIONS = [
     { code: 'de', label: 'German', flag: '🇩🇪' },
-    { code: 'es', label: 'Spanish', flag: '🇪🇸' },
     { code: 'fr', label: 'French', flag: '🇫🇷' },
-    { code: 'it', label: 'Italian', flag: '🇮🇹' },
-    { code: 'pt', label: 'Portuguese', flag: '🇵🇹' },
-    { code: 'nl', label: 'Dutch', flag: '🇳🇱' },
-    { code: 'ja', label: 'Japanese', flag: '🇯🇵' },
-    { code: 'ko', label: 'Korean', flag: '🇰🇷' },
-    { code: 'zh', label: 'Chinese', flag: '🇨🇳' },
-    { code: 'ru', label: 'Russian', flag: '🇷🇺' },
-    { code: 'ar', label: 'Arabic', flag: '🇸🇦' },
     { code: 'hi', label: 'Hindi', flag: '🇮🇳' },
 ]
 

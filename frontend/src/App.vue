@@ -50,10 +50,6 @@ const closeMenu = () => {
                                 class="flex items-center text-muted-foreground no-underline text-sm px-3 py-1.5 transition-colors hover:text-foreground [&.router-link-active]:text-primary">
                                 Decks
                             </router-link>
-                            <router-link v-if="authStore.isAuthenticated" to="/create"
-                                class="flex items-center text-muted-foreground no-underline text-sm px-3 py-1.5 transition-colors hover:text-foreground [&.router-link-active]:text-primary">
-                                Create
-                            </router-link>
                             <router-link v-if="authStore.isAuthenticated" to="/conversation"
                                 class="flex items-center text-muted-foreground no-underline text-sm px-3 py-1.5 transition-colors hover:text-foreground [&.router-link-active]:text-primary">
                                 Conversation

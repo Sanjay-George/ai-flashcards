@@ -16,7 +16,7 @@ export interface Deck {
     _id: string;
     title: string;
     tags: string[];
-    language?: string;  // Language being learned (e.g., 'de', 'es', 'fr')
+    language?: string;  // Language being learned (e.g., 'de', 'fr', 'hi')
     userId: string;     // Firebase user ID (owner)
     isPublic: boolean;  // Whether deck is publicly visible
     lexemes: Lexeme[];
@@ -54,7 +54,7 @@ export interface CreateDeckRequest {
 export interface CreateDeckResponse {
     title: string;
     tags: string[];
-    language?: string;  // Detected language code (e.g., 'de', 'es', 'fr')
+    language?: string;  // Detected language code (e.g., 'de', 'fr', 'hi')
     lexemes: Lexeme[];
 }
 

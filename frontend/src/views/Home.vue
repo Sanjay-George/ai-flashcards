@@ -15,14 +15,11 @@ import { RouterLink } from 'vue-router'
             </p>
 
             <div class="flex flex-col sm:flex-row gap-3 mb-16 sm:mb-20">
-                <RouterLink to="/create" class="btn btn-primary px-5 py-2.5 text-sm">
-                    Create a deck
-                </RouterLink>
-                <RouterLink to="/conversation" class="btn btn-secondary px-5 py-2.5 text-sm">
-                    Practice conversations
-                </RouterLink>
                 <RouterLink to="/decks" class="btn btn-secondary px-5 py-2.5 text-sm">
                     Browse decks
+                </RouterLink>
+                <RouterLink to="/conversation" class="btn btn-primary px-5 py-2.5 text-sm">
+                    Practice conversations
                 </RouterLink>
             </div>
 

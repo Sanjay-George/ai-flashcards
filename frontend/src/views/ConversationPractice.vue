@@ -165,9 +165,7 @@ const speechSupported = ref(typeof window !== 'undefined' && ('SpeechRecognition
 let recognition: any = null
 
 const languageMap: Record<string, string> = {
-    de: 'de-DE', es: 'es-ES', fr: 'fr-FR', it: 'it-IT', pt: 'pt-PT',
-    nl: 'nl-NL', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', ru: 'ru-RU',
-    ar: 'ar-SA', hi: 'hi-IN',
+    de: 'de-DE', fr: 'fr-FR', hi: 'hi-IN',
 }
 
 const startRecording = () => {
@@ -233,9 +231,7 @@ const speakingMessageIdx = ref<number | null>(null)
 
 const getTTSLang = (langCode: string): string => {
     const map: Record<string, string> = {
-        de: 'de-DE', es: 'es-ES', fr: 'fr-FR', it: 'it-IT', pt: 'pt-PT',
-        nl: 'nl-NL', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', ru: 'ru-RU',
-        ar: 'ar-SA', hi: 'hi-IN',
+        de: 'de-DE', fr: 'fr-FR', hi: 'hi-IN',
     }
     return map[langCode] || 'en-US'
 }

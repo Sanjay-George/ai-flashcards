@@ -215,14 +215,8 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
 // Available languages with their display names
 const availableLanguages = [
     { code: 'de', name: 'German' },
-    { code: 'es', name: 'Spanish' },
     { code: 'fr', name: 'French' },
-    { code: 'it', name: 'Italian' },
-    { code: 'pt', name: 'Portuguese' },
-    { code: 'nl', name: 'Dutch' },
-    { code: 'ja', name: 'Japanese' },
-    { code: 'zh', name: 'Chinese' },
-    { code: 'ko', name: 'Korean' },
+    { code: 'hi', name: 'Hindi' },
 ]
 
 const handleLanguageChange = async (event: Event): Promise<void> => {

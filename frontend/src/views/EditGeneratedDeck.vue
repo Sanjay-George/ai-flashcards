@@ -195,14 +195,8 @@ const goBack = () => {
 // Language display helper
 const languageNames: Record<string, string> = {
     de: 'German',
-    es: 'Spanish',
     fr: 'French',
-    it: 'Italian',
-    pt: 'Portuguese',
-    nl: 'Dutch',
-    ja: 'Japanese',
-    zh: 'Chinese',
-    ko: 'Korean',
+    hi: 'Hindi',
 }
 
 const getLanguageName = (code: string): string => {
