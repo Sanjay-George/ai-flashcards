@@ -14,27 +14,18 @@ permissions:
 env:
   BACKEND_FOLDER: .
   DOCKER_REGISTRY_URL: docker.io
-  DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/ai-fc-backend
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/flashcards-backend
   AZURE_RESOURCE_GROUP: rg-ai-flashcards-prod
   AZURE_CONTAINER_APP_NAME: app-backend-prod
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    environment: prod
-    permissions:
-      id-token: write
-      contents: read
+    outputs:
+      image_tag: ${{ steps.define-tag.outputs.image_tag }} # Expose as job output
     steps:
-      - name: Checkout to the branch
+      - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZ_GITHUB_SP_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZ_GITHUB_SP_TENANT_ID }}
-          subscription-id: ${{ secrets.AZ_FC_SUBSCRIPTION_ID }}
 
       - name: Determine Image Tag
         id: define-tag
@@ -43,14 +34,44 @@ jobs:
       - name: Print tag for debug
         run: echo "Image tag=${{ steps.define-tag.outputs.image_tag }}"
 
-      - name: Build and deploy Container App
-        uses: azure/container-apps-deploy-action@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          appSourcePath: ${{ github.workspace }}
-          dockerfilePath: Dockerfile
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_FOLDER }}
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.define-tag.outputs.image_tag }}
+
+      - name: Debug image tag
+        run: echo "Image tag is ${{ steps.define-tag.outputs.image_tag }}"
+
+  deploy:
+    needs: build
+    environment: prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print tag for debug
+        run: echo "Image tag=${{ needs.build.outputs.image_tag }}"
+
+      - name: Log in to Azure
+        uses: Azure/login@v2.3.0
+        with:
+          client-id: ${{ secrets.AZ_GITHUB_SP_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZ_GITHUB_SP_TENANT_ID}}
+          subscription-id: ${{ secrets.AZ_FC_SUBSCRIPTION_ID }}
+
+      - name: Build and deploy Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
           registryUrl: ${{ env.DOCKER_REGISTRY_URL }}
           registryUsername: ${{ secrets.DOCKERHUB_USERNAME }}
           registryPassword: ${{ secrets.DOCKERHUB_TOKEN }}
           containerAppName: ${{ env.AZURE_CONTAINER_APP_NAME }}
           resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
-          imageToBuild: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.define-tag.outputs.image_tag }}
+          imageToDeploy: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}
