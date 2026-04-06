@@ -69,9 +69,9 @@ jobs:
       - name: Build and deploy Container App
         uses: azure/container-apps-deploy-action@v1
         with:
-          registryUrl: ${{ env.DOCKER_REGISTRY_URL }}
-          registryUsername: ${{ secrets.DOCKERHUB_USERNAME }}
-          registryPassword: ${{ secrets.DOCKERHUB_TOKEN }}
+          # registryUrl: ${{ env.DOCKER_REGISTRY_URL }}
+          # registryUsername: ${{ secrets.DOCKERHUB_USERNAME }}
+          # registryPassword: ${{ secrets.DOCKERHUB_TOKEN }}
           containerAppName: ${{ env.AZURE_CONTAINER_APP_NAME }}
           resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
           imageToDeploy: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}
