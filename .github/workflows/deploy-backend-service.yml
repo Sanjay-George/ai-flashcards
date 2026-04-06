@@ -13,11 +13,10 @@ permissions:
 
 env:
   BACKEND_FOLDER: .
-  AZURE_REGISTRY: craiflashcardsprod001
+  DOCKER_REGISTRY_URL: docker.io
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/backend
   AZURE_RESOURCE_GROUP: rg-ai-flashcards-prod
   AZURE_CONTAINER_APP_NAME: app-backend-prod
-  ACR_REPO: app
-  ACR_IMAGE: backend
 
 jobs:
   build:
@@ -35,21 +34,19 @@ jobs:
       - name: Print tag for debug
         run: echo "Image tag=${{ steps.define-tag.outputs.image_tag }}"
 
-      - name: Build image with ACR
-        id: build-acr
-        uses: azure/acr-build@v1
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          service_principal: ${{ secrets.AZ_GITHUB_SP_CLIENT_ID }}
-          service_principal_password: ${{ secrets.AZ_GITHUB_SP_PASSWORD }}
-          tenant: ${{ secrets.AZ_GITHUB_SP_TENANT_ID}}
-          registry: ${{ env.AZURE_REGISTRY }}
-          repository: ${{ env.ACR_REPO }}
-          image: ${{ env.ACR_IMAGE }}
-          git_access_token: ${{ secrets.GITHUB_TOKEN }}
-          folder: ${{ env.BACKEND_FOLDER }}
-          dockerfile: ./Dockerfile
-          branch: ${{ github.ref_name || 'develop' }} 
-          tag: ${{ steps.define-tag.outputs.image_tag }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_FOLDER }}
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.define-tag.outputs.image_tag }}
 
       - name: Debug image tag
         run: echo "Image tag is ${{ steps.define-tag.outputs.image_tag }}"
@@ -61,7 +58,7 @@ jobs:
     steps:
       - name: Print tag for debug
         run: echo "Image tag=${{ needs.build.outputs.image_tag }}"
-        
+
       - name: Log in to Azure
         uses: Azure/login@v2.3.0
         with:
@@ -72,7 +69,9 @@ jobs:
       - name: Build and deploy Container App
         uses: azure/container-apps-deploy-action@v1
         with:
-          acrName: ${{ env.AZURE_REGISTRY }}
+          registryUrl: ${{ env.DOCKER_REGISTRY_URL }}
+          registryUsername: ${{ secrets.DOCKERHUB_USERNAME }}
+          registryPassword: ${{ secrets.DOCKERHUB_TOKEN }}
           containerAppName: ${{ env.AZURE_CONTAINER_APP_NAME }}
           resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
-          imageToDeploy: ${{ env.AZURE_REGISTRY }}.azurecr.io/${{ env.ACR_REPO }}/${{ env.ACR_IMAGE }}:${{ needs.build.outputs.image_tag }}
+          imageToDeploy: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}
