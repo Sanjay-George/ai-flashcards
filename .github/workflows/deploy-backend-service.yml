@@ -14,7 +14,7 @@ permissions:
 env:
   BACKEND_FOLDER: .
   DOCKER_REGISTRY_URL: docker.io
-  DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/backend
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/ai-fc/backend
   AZURE_RESOURCE_GROUP: rg-ai-flashcards-prod
   AZURE_CONTAINER_APP_NAME: app-backend-prod
 
