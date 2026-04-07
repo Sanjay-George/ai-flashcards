@@ -75,3 +75,5 @@ jobs:
           containerAppName: ${{ env.AZURE_CONTAINER_APP_NAME }}
           resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
           imageToDeploy: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}
+        env:
+          RUNNER_DEBUG: "1"
