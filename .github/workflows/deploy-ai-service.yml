@@ -44,7 +44,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ env.BACKEND_FOLDER }}
-          file: ./Dockerfile
+          file: ${{ env.BACKEND_FOLDER }}/Dockerfile
           push: true
           tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.define-tag.outputs.image_tag }}
 
