@@ -23,7 +23,7 @@ app.include_router(api.router)
 
 @app.get("/")
 def root():
-    return {"message": "AI App running"}
+    return {"message": "AI App running..."}
 
 
 if __name__ == "__main__":
