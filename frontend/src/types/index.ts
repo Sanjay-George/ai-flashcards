@@ -73,9 +73,13 @@ export interface EditDeckRequest {
     message_history?: ChatMessage[];
 }
 
+export interface EditLexeme extends Lexeme {
+    replace_term?: string;
+}
+
 export interface EditDeckResponse {
     action: 'add' | 'edit' | 'remove';
-    updated_lexemes: Lexeme[];
+    updated_lexemes: EditLexeme[];
 }
 
 export interface GenerateFlashcardsRequest {

@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useAuthStore } from '../stores/authStore'
 import { useProgressStore } from '../stores/progressStore'
-import type { Deck, Lexeme, DeckMastery } from '../types/index'
+import type { Deck, DeckMastery } from '../types/index'
+import { useDeckAiEditLoop } from '../composables/useDeckAiEditLoop'
+import AppButton from '../components/ui/AppButton.vue'
+import AppBadge from '../components/ui/AppBadge.vue'
+import IconButton from '../components/ui/IconButton.vue'
+import LexemeListItem from '../components/deck/LexemeListItem.vue'
+import PendingLexemeChanges from '../components/deck/PendingLexemeChanges.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,27 +21,42 @@ const authStore = useAuthStore()
 const progressStore = useProgressStore()
 
 const deckId = route.params.id as string
-const editInstruction = ref<string>('')
-const isEditing = ref<boolean>(false)
-const editError = ref<string>('')
+const isEditingTitle = ref<boolean>(false)
+const titleDraft = ref<string>('')
+const titleError = ref<string>('')
 const generatingFlashcards = ref<boolean>(false)
 const selectedMode = ref<'simple' | 'master'>('simple')
 const sessionSize = 10
 const deckMastery = ref<DeckMastery | null>(null)
 
-// Pending changes state
-const hasPendingChanges = ref<boolean>(false)
-const pendingAction = ref<'add' | 'remove' | 'edit' | null>(null)
-const pendingAdditions = ref<Lexeme[]>([])
-const pendingRemovals = ref<Lexeme[]>([])
-const originalLexemes = ref<Lexeme[]>([])
+const deck = computed<Deck | null>(() => deckStore.currentDeck)
 
-// Message history for AI context (optional for existing decks)
-interface ChatMessage {
-    role: 'user' | 'assistant'
-    content: string
-}
-const messageHistory = ref<ChatMessage[]>([])
+const {
+    editInstruction,
+    isEditing,
+    editError,
+    hasPendingChanges,
+    pendingAction,
+    pendingAdditions,
+    pendingRemovals,
+    handleEdit,
+    commitChanges,
+    undoChanges,
+} = useDeckAiEditLoop({
+    getDeckSnapshot: () => {
+        if (!deck.value) return null
+        return {
+            title: deck.value.title,
+            tags: deck.value.tags,
+            lexemes: deck.value.lexemes,
+        }
+    },
+    runEdit: (deckSnapshot, instruction, history) =>
+        deckStore.editDeckWithAI(deckSnapshot, instruction, history),
+    applyCommittedLexemes: async (updatedLexemes) => {
+        await deckStore.updateDeck(deckId, { lexemes: updatedLexemes })
+    },
+})
 
 // Ownership check
 const isOwner = computed(() => deck.value?.userId === authStore.userId)
@@ -48,111 +69,46 @@ onMounted(async () => {
     }
 })
 
-const deck = computed<Deck | null>(() => deckStore.currentDeck)
+watch(
+    () => deck.value?.title,
+    (newTitle) => {
+        if (newTitle && !isEditingTitle.value) {
+            titleDraft.value = newTitle
+        }
+    },
+    { immediate: true }
+)
 
-const handleEdit = async (): Promise<void> => {
-    if (!editInstruction.value.trim() || !deck.value) return
+const startTitleEdit = (): void => {
+    if (!deck.value) return
+    titleDraft.value = deck.value.title
+    titleError.value = ''
+    isEditingTitle.value = true
+}
 
-    isEditing.value = true
-    editError.value = ''
+const cancelTitleEdit = (): void => {
+    if (!deck.value) return
+    titleDraft.value = deck.value.title
+    titleError.value = ''
+    isEditingTitle.value = false
+}
+
+const saveTitleEdit = async (): Promise<void> => {
+    if (!deck.value) return
+
+    const normalizedTitle = titleDraft.value.trim()
+    if (!normalizedTitle) {
+        titleError.value = 'Title cannot be empty'
+        return
+    }
 
     try {
-        // Add user message to history
-        messageHistory.value.push({
-            role: 'user',
-            content: editInstruction.value
-        })
-
-        const result = await deckStore.editDeckWithAI(
-            {
-                title: deck.value.title,
-                tags: deck.value.tags,
-                lexemes: deck.value.lexemes
-            },
-            editInstruction.value,
-            messageHistory.value
-        )
-
-        // Store original state and set pending changes
-        originalLexemes.value = [...deck.value.lexemes]
-        pendingAction.value = result.action
-
-        if (result.action === 'add') {
-            pendingAdditions.value = result.updated_lexemes
-            pendingRemovals.value = []
-            messageHistory.value.push({
-                role: 'assistant',
-                content: `Adding ${result.updated_lexemes.length} new lexeme(s).`
-            })
-        } else if (result.action === 'remove') {
-            const termsToRemove = result.updated_lexemes.map((l: Lexeme) => l.term)
-            pendingRemovals.value = deck.value.lexemes.filter((l: Lexeme) => termsToRemove.includes(l.term))
-            pendingAdditions.value = []
-            messageHistory.value.push({
-                role: 'assistant',
-                content: `Removing ${pendingRemovals.value.length} lexeme(s).`
-            })
-        } else if (result.action === 'edit') {
-            // For edits, show old as removal and new as addition
-            const editedTerms = result.updated_lexemes.map((l: Lexeme) => l.term)
-            pendingRemovals.value = deck.value.lexemes.filter((l: Lexeme) => editedTerms.includes(l.term))
-            pendingAdditions.value = result.updated_lexemes
-            messageHistory.value.push({
-                role: 'assistant',
-                content: `Editing ${result.updated_lexemes.length} lexeme(s).`
-            })
-        }
-
-        hasPendingChanges.value = true
-        editInstruction.value = ''
+        await deckStore.updateDeck(deckId, { title: normalizedTitle })
+        titleError.value = ''
+        isEditingTitle.value = false
     } catch (e: any) {
-        editError.value = e.message || 'Failed to edit deck'
-        // Remove the user message if there was an error
-        messageHistory.value.pop()
-    } finally {
-        isEditing.value = false
+        titleError.value = e.message || 'Failed to update title'
     }
-}
-
-const commitChanges = async (): Promise<void> => {
-    if (!deck.value || !hasPendingChanges.value) return
-
-    try {
-        let updatedLexemes = [...deck.value.lexemes]
-
-        if (pendingAction.value === 'add') {
-            updatedLexemes = [...updatedLexemes, ...pendingAdditions.value]
-        } else if (pendingAction.value === 'remove') {
-            const termsToRemove = pendingRemovals.value.map((l: Lexeme) => l.term)
-            updatedLexemes = updatedLexemes.filter((l: Lexeme) => !termsToRemove.includes(l.term))
-        } else if (pendingAction.value === 'edit') {
-            // Remove old versions and add new ones
-            const termsToUpdate = pendingAdditions.value.map((l: Lexeme) => l.term)
-            updatedLexemes = updatedLexemes.filter((l: Lexeme) => !termsToUpdate.includes(l.term))
-            updatedLexemes = [...updatedLexemes, ...pendingAdditions.value]
-        }
-
-        await deckStore.updateDeck(deckId, { lexemes: updatedLexemes })
-        clearPendingChanges()
-    } catch (e: any) {
-        editError.value = e.message || 'Failed to apply changes'
-    }
-}
-
-const undoChanges = (): void => {
-    clearPendingChanges()
-    // Remove last two messages (user instruction and assistant response)
-    if (messageHistory.value.length >= 2) {
-        messageHistory.value.splice(-2)
-    }
-}
-
-const clearPendingChanges = (): void => {
-    hasPendingChanges.value = false
-    pendingAction.value = null
-    pendingAdditions.value = []
-    pendingRemovals.value = []
-    originalLexemes.value = []
 }
 
 // Study with SRS - generates flashcards on-the-fly from due lexemes
@@ -263,121 +219,165 @@ const handleClone = async (): Promise<void> => {
         </div>
 
         <div v-else-if="deck">
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
-                <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-2 mb-2">
-                        <h1 class="text-xl font-semibold text-foreground">{{ deck.title }}</h1>
-                        <span v-if="isOwner" class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground"
-                            style="border-radius: 0.25rem;">
-                            Owner
-                        </span>
-                        <span v-else class="text-xs px-1.5 py-0.5 border border-border text-muted-foreground"
-                            style="border-radius: 0.25rem;">
-                            Public
-                        </span>
-                    </div>
-                    <div class="flex flex-wrap gap-1.5 items-center">
-                        <span v-for="tag in deck.tags" :key="tag" class="tag tag-primary">
-                            {{ tag }}
-                        </span>
-                        <select v-if="isOwner" :value="deck.language || ''" @change="handleLanguageChange"
-                            class="ml-1 px-2 py-0.5 text-xs bg-background border border-border focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-                            style="border-radius: 0.25rem;" title="Reference language">
-                            <option value="">No language</option>
-                            <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">
-                                {{ lang.name }}
-                            </option>
-                        </select>
-                        <span v-else-if="deck.language" class="tag">
-                            {{availableLanguages.find(l => l.code === deck?.language)?.name || deck?.language}}
-                        </span>
+            <div class="mb-6 space-y-3">
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <template v-if="isOwner && isEditingTitle">
+                            <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                <input
+                                    v-model="titleDraft"
+                                    class="form-control text-sm flex-1"
+                                    type="text"
+                                    placeholder="Enter deck title"
+                                    @keydown.enter.prevent="saveTitleEdit"
+                                    @keydown.esc.prevent="cancelTitleEdit"
+                                />
+                                <div class="flex gap-2">
+                                    <AppButton size="sm" @click="saveTitleEdit">Save title</AppButton>
+                                    <AppButton size="sm" variant="secondary" @click="cancelTitleEdit">Cancel</AppButton>
+                                </div>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div class="flex items-start gap-1.5">
+                                <h1 class="text-xl font-semibold text-foreground leading-tight wrap-break-word flex-1">{{ deck.title }}</h1>
+                                <IconButton
+                                    v-if="isOwner"
+                                    @click="startTitleEdit"
+                                    title="Edit title"
+                                >
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4"
+                                        aria-hidden="true"
+                                    >
+                                        <path d="M4 20h4l10-10a2 2 0 0 0-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                                        <path d="m13.5 6.5 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </IconButton>
+                            </div>
+                        </template>
 
-                        <button v-if="isOwner" @click="handleVisibilityToggle"
-                            class="ml-1 px-2 py-0.5 text-xs border border-border transition-colors cursor-pointer hover:bg-secondary"
-                            style="border-radius: 0.25rem;"
-                            :title="deck.isPublic ? 'Click to make private' : 'Click to share publicly'">
-                            {{ deck.isPublic ? 'Public' : 'Private' }}
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!--
+                            <AppBadge v-if="isOwner" size="sm">Owner</AppBadge>
+                            <AppBadge v-else size="sm">Public</AppBadge>
+                            -->
+                            <!--
+                            <AppButton
+                                v-if="isOwner && !isEditingTitle"
+                                @click="startTitleEdit"
+                                variant="secondary"
+                                size="sm"
+                                class="gap-1.5"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M4 20h4l10-10a2 2 0 0 0-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                                    <path d="m13.5 6.5 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                Edit title
+                            </AppButton>
+                            -->
+                        </div>
+
+                        <p v-if="titleError" class="text-xs text-destructive">{{ titleError }}</p>
+
+                        <div class="inline-flex w-fit max-w-full flex-wrap items-center gap-2 p-2 border border-border bg-secondary/25"
+                            style="border-radius: 0.5rem;">
+                            <span class="text-xs text-muted-foreground font-medium px-1">Deck settings</span>
+                            <select v-if="isOwner" :value="deck.language || ''" @change="handleLanguageChange"
+                                class="form-control control-sm w-auto! min-w-40" title="Reference language">
+                                <option value="">No language</option>
+                                <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">
+                                    {{ lang.name }}
+                                </option>
+                            </select>
+                            <AppBadge v-else-if="deck.language" size="sm">
+                                {{availableLanguages.find(l => l.code === deck?.language)?.name || deck?.language}}
+                            </AppBadge>
+
+                            <AppButton v-if="isOwner" @click="handleVisibilityToggle" variant="outline" size="sm"
+                                class="gap-1.5"
+                                :title="deck.isPublic ? 'Click to make private' : 'Click to share publicly'">
+                                <svg
+                                    v-if="deck.isPublic"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                >
+                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+                                    <path d="M3 12h18M12 3c2.5 2.5 4 5.6 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.6-4-9s1.5-6.5 4-9Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <svg
+                                    v-else
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                >
+                                    <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.7" />
+                                    <path d="M8 10V8a4 4 0 1 1 8 0v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                                </svg>
+                                {{ deck.isPublic ? 'Public' : 'Private' }}
+                            </AppButton>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 w-full sm:w-auto sm:justify-end">
+                        <AppButton v-if="!isOwner" @click="handleClone" class="flex-1 sm:flex-none">
+                            Clone
+                        </AppButton>
+                        <AppButton variant="secondary" size="sm" @click="$router.back()" class="flex-1 sm:flex-none">
+                            Back
+                        </AppButton>
                     </div>
                 </div>
-                <div class="flex gap-2 w-full sm:w-auto">
-                    <button v-if="!isOwner" @click="handleClone" class="btn btn-primary flex-1 sm:flex-none text-sm">
-                        Clone
-                    </button>
-                    <button @click="$router.back()" class="btn btn-secondary flex-1 sm:flex-none text-sm">
-                        Back
-                    </button>
+
+                <!--
+                <div class="flex flex-wrap gap-2 items-center">
+                    <AppBadge v-for="tag in deck.tags" :key="tag" variant="primary" size="sm">
+                        {{ tag }}
+                    </AppBadge>
                 </div>
+                -->
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <!-- Lexemes List -->
                 <div class="card">
                     <h2 class="text-sm font-medium mb-3 text-foreground">Lexemes ({{ deck.lexemes.length }})</h2>
-                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col gap-1">
-                        <div v-for="(lexeme, index) in deck.lexemes" :key="index"
-                            class="p-2.5 flex items-center gap-3 border-b border-border last:border-0">
-                            <div class="font-medium text-sm text-foreground min-w-20">{{ lexeme.term }}</div>
-                            <div class="text-xs text-muted-foreground flex-1">{{ lexeme.meaning }}</div>
-                            <div class="text-xs text-muted-foreground border border-border px-1.5 py-0.5 shrink-0"
-                                style="border-radius: 0.25rem;">{{ lexeme.POS }}</div>
-                            <button v-if="isOwner" @click="handleRemoveLexeme(lexeme.term)"
-                                class="text-destructive/60 hover:text-destructive text-sm cursor-pointer shrink-0 transition-colors"
-                                title="Remove" :disabled="hasPendingChanges">
-                                &times;
-                            </button>
-                        </div>
+                    <div class="max-h-100 sm:max-h-125 overflow-y-auto flex flex-col">
+                        <LexemeListItem
+                            v-for="(lexeme, index) in deck.lexemes"
+                            :key="index"
+                            :lexeme="lexeme"
+                            :removable="isOwner"
+                            :disabled="hasPendingChanges"
+                            @remove="handleRemoveLexeme"
+                        />
                     </div>
                 </div>
 
                 <!-- Pending Changes Preview -->
-                <div v-if="hasPendingChanges" class="card border-primary border">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="text-sm font-medium text-foreground">Pending changes</h2>
-                        <span class="text-xs text-muted-foreground border border-border px-2 py-0.5"
-                            style="border-radius: 0.25rem;">
-                            {{ pendingAction === 'add' ? 'Adding' : pendingAction === 'remove' ? 'Removing' : 'Editing'
-                            }}
-                        </span>
-                    </div>
-
-                    <div v-if="pendingRemovals.length > 0" class="mb-3">
-                        <h3 class="text-xs font-medium text-destructive mb-1.5">Removing ({{ pendingRemovals.length }})
-                        </h3>
-                        <div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                            <div v-for="(lexeme, index) in pendingRemovals" :key="'remove-' + index"
-                                class="bg-destructive/5 border border-destructive/20 p-2 flex items-center gap-2 text-sm"
-                                style="border-radius: 0.25rem;">
-                                <span class="font-medium text-destructive">{{ lexeme.term }}</span>
-                                <span class="text-xs text-destructive/60 flex-1">{{ lexeme.meaning }}</span>
-                                <span class="text-xs text-destructive/60">{{ lexeme.POS }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-if="pendingAdditions.length > 0" class="mb-3">
-                        <h3 class="text-xs font-medium text-green-700 mb-1.5">Adding ({{ pendingAdditions.length }})
-                        </h3>
-                        <div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                            <div v-for="(lexeme, index) in pendingAdditions" :key="'add-' + index"
-                                class="bg-green-500/5 border border-green-500/20 p-2 flex items-center gap-2 text-sm"
-                                style="border-radius: 0.25rem;">
-                                <span class="font-medium text-green-700">{{ lexeme.term }}</span>
-                                <span class="text-xs text-green-600/60 flex-1">{{ lexeme.meaning }}</span>
-                                <span class="text-xs text-green-600/60">{{ lexeme.POS }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-2 pt-3 border-t border-border">
-                        <button @click="undoChanges" class="btn btn-secondary flex-1 text-sm">
-                            Undo
-                        </button>
-                        <button @click="commitChanges" class="btn btn-primary flex-1 text-sm">
-                            Commit
-                        </button>
-                    </div>
-                </div>
+                <PendingLexemeChanges
+                    v-if="hasPendingChanges"
+                    :pending-action="pendingAction"
+                    :pending-additions="pendingAdditions"
+                    :pending-removals="pendingRemovals"
+                    @undo="undoChanges"
+                    @commit="commitChanges"
+                />
 
                 <!-- Edit Deck -->
                 <div v-if="!hasPendingChanges && isOwner" class="card">
@@ -391,10 +391,10 @@ const handleClone = async (): Promise<void> => {
                             rows="3" :disabled="isEditing"></textarea>
                     </div>
 
-                    <button @click="handleEdit" class="btn btn-primary text-sm"
+                    <AppButton @click="handleEdit"
                         :disabled="isEditing || !editInstruction.trim()">
                         {{ isEditing ? 'Processing...' : 'Apply changes' }}
-                    </button>
+                    </AppButton>
                 </div>
             </div>
 
@@ -475,18 +475,18 @@ const handleClone = async (): Promise<void> => {
                     <p class="text-xs text-muted-foreground mb-3">
                         Cards selected via spaced repetition. Difficult words appear more often.
                     </p>
-                    <button @click="studyWithSRS" class="btn btn-primary text-sm w-full sm:w-auto"
+                    <AppButton @click="studyWithSRS" class="w-full sm:w-auto"
                         :disabled="generatingFlashcards">
                         {{ generatingFlashcards ? 'Generating...' : 'Start studying' }}
-                    </button>
+                    </AppButton>
                 </div>
                 <div v-else>
                     <p class="text-xs text-muted-foreground mb-3">
                         Clone this deck to study with your own progress tracking.
                     </p>
-                    <button @click="handleClone" class="btn btn-primary text-sm w-full sm:w-auto">
+                    <AppButton @click="handleClone" class="w-full sm:w-auto">
                         Clone to study
-                    </button>
+                    </AppButton>
                 </div>
             </div>
         </div>
