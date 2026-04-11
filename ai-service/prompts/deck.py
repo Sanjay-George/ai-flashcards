@@ -43,27 +43,75 @@ Input:
 - Optional conversation history for context
 
 Field definitions:
-- "term": The word/phrase in the TARGET language being learned (e.g., German, Spanish). This is what the student is trying to learn.
-- "meaning": The ENGLISH translation/definition of the term.
+- "term": The word/phrase in the TARGET language being learned (e.g., German, Spanish).
+- "meaning": The definition, translation, or structured form associated with the term.
+  Content here is determined by the deck's established format — it may be English only,
+  target-language forms only, or a mix (e.g., "machte — hat gemacht (to make)").
 - "POS": Part of speech (noun, verb, adjective, etc.)
-- "replace_term": For edit actions, the exact existing term in the current deck that this new lexeme should replace.
+- "replace_term": For edit actions, the exact existing term in the current deck that this
+  new lexeme should replace.
 
-Task:
-- Interpret the instruction to add, edit, or remove lexemes.
-- First infer the deck's learning intent and formatting pattern from the current deck examples.
-- Keep new/edited lexemes consistent with the deck's existing style and pedagogical goal.
-- If the existing deck uses a structured answer format (for example tense patterns, conjugation blocks, "X - Y (to Z)", gender/article formats, etc.), preserve that format.
-- If instruction is to add terms, DO NOT add existing terms again. (ie. AVOID DUPLICATES)
-- When modifying terms (e.g., adding articles to German nouns), update the "term" field, NOT the "meaning" field.
-- The "meaning" field should always remain in English.
-- Avoid generic dictionary-style meanings when the deck is practicing a specific transformation pattern.
-- Use the conversation history to understand context and follow-up requests.
+═══════════════════════════════════════════════
+STEP 1 — INFER THE DECK'S FORMAT
+═══════════════════════════════════════════════
+
+Before doing anything else, study the existing cards to extract:
+  1. What goes in "term" (bare infinitive? with article? with conjugation?)
+  2. What goes in "meaning" (English only? target-language forms + English? a pattern like
+     "machte — hat gemacht (to make)"?)
+  3. Any consistent punctuation, separators, ordering, or grammatical patterns.
+
+This inferred format is the ground truth. All edits and additions MUST match it exactly.
+Do NOT invent a new format. Do NOT partially apply the format.
+
+═══════════════════════════════════════════════
+STEP 2 — DECIDE THE ACTION
+═══════════════════════════════════════════════
+
+Use "edit" (NOT "add") when the instruction enriches or transforms cards that already
+exist in the deck. Common signals:
+  - "add X to [existing POS]"   →  edit those existing cards to include X
+  - "for [POS], add/include X"  →  edit those existing cards
+  - "update", "enrich", "include", "append", "show" applied to current cards
+
+Use "add" ONLY for brand-new vocabulary/phrases not already present in the deck.
+Use "remove" to delete cards explicitly named or matched by a filter.
+
+When in doubt, PREFER "edit" over "add" to avoid duplicates.
+
+═══════════════════════════════════════════════
+STEP 3 — PLACE CONTENT IN THE CORRECT FIELD
+═══════════════════════════════════════════════
+
+Do NOT rely on the user's wording to decide which field gets updated.
+Instead, ask: "Where does this type of content live in the existing deck's format?"
+
+Examples:
+  Deck format → term: "machen", meaning: "machte — hat gemacht (to make)"
+    • "add past tense"       → past-tense form belongs in "meaning" (that's where the
+                               deck already stores it), not a new card
+    • "add superlative"      → check where superlatives appear in existing adjective cards
+                               and mirror that placement
+
+  Deck format → term: "schnell", meaning: "fast"
+    • "add superlative"      → superlative is target-language enrichment of the term,
+                               so likely goes in "term": "schnell — am schnellsten"
+                               (confirm against any adjective cards already in the deck)
+
+  Deck format → term: "das Zimmer", meaning: "room"
+    • "add articles"         → article is part of the term → update "term", not "meaning"
+
+The user saying "add X in meaning" or "add X in term" is a hint, not a directive —
+the deck's existing format takes priority.
+
+═══════════════════════════════════════════════
+ADDITIONAL RULES
+═══════════════════════════════════════════════
+
+- DO NOT add duplicates. If a term already exists, edit it instead.
 - For "action": "edit", ALWAYS include "replace_term" for each updated lexeme.
-- "replace_term" must match an existing current-deck term exactly (case-sensitive when possible).
-- Examples:
-  * Adding German article: term "Zimmer" → term "das Zimmer", meaning stays "room"
-  * Adding Spanish article: term "casa" → term "la casa", meaning stays "house"
-  * Edit mapping: term "der Tag", replace_term "Tag"
+- "replace_term" must match an existing current-deck term exactly (case-sensitive).
+- Use conversation history to understand context and follow-up requests.
 
 Output JSON:
 {
