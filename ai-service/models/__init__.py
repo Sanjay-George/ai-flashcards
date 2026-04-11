@@ -33,9 +33,14 @@ class DeckEditRequest(BaseModel):
     message_history: Optional[List[ChatMessage]] = None
 
 
+class EditLexeme(Lexeme):
+    # For edit actions, this identifies which existing term should be replaced.
+    replace_term: Optional[str] = None
+
+
 class DeckEditResponse(BaseModel):
     action: str
-    updated_lexemes: List[Lexeme]
+    updated_lexemes: List[EditLexeme]
 
 
 class Pattern(BaseModel):
