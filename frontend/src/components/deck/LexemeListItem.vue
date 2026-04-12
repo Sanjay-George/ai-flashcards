@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Lexeme } from '../../types'
-import AppBadge from '../ui/AppBadge.vue'
 import IconButton from '../ui/IconButton.vue'
 
 interface Props {
