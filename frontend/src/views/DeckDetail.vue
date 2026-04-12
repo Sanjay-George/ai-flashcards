@@ -5,12 +5,12 @@ import { useDeckStore } from '../stores/deckStore'
 import { useFlashcardStore } from '../stores/flashcardStore'
 import { useAuthStore } from '../stores/authStore'
 import { useProgressStore } from '../stores/progressStore'
-import type { Deck, DeckMastery } from '../types/index'
+import type { Deck, DeckMastery, Lexeme } from '../types/index'
 import { useDeckAiEditLoop } from '../composables/useDeckAiEditLoop'
 import AppButton from '../components/ui/AppButton.vue'
-import AppBadge from '../components/ui/AppBadge.vue'
 import IconButton from '../components/ui/IconButton.vue'
 import LexemeListItem from '../components/deck/LexemeListItem.vue'
+import LexemeFlashcardPreview from '../components/deck/LexemeFlashcardPreview.vue'
 import PendingLexemeChanges from '../components/deck/PendingLexemeChanges.vue'
 
 const route = useRoute()
@@ -28,6 +28,7 @@ const generatingFlashcards = ref<boolean>(false)
 const selectedMode = ref<'simple' | 'master'>('simple')
 const sessionSize = 10
 const deckMastery = ref<DeckMastery | null>(null)
+const previewLexeme = ref<Lexeme | null>(null)
 
 const deck = computed<Deck | null>(() => deckStore.currentDeck)
 
@@ -163,27 +164,20 @@ const handleRemoveLexeme = async (term: string): Promise<void> => {
 
     try {
         await deckStore.removeLexeme(deckId, term)
+        if (previewLexeme.value?.term === term) {
+            previewLexeme.value = null
+        }
     } catch (e: any) {
         editError.value = e.message || 'Failed to remove lexeme'
     }
 }
 
-// Available languages with their display names
-const availableLanguages = [
-    { code: 'de', name: 'German' },
-    { code: 'fr', name: 'French' },
-    { code: 'hi', name: 'Hindi' },
-]
+const openLexemePreview = (lexeme: Lexeme): void => {
+    previewLexeme.value = lexeme
+}
 
-const handleLanguageChange = async (event: Event): Promise<void> => {
-    const target = event.target as HTMLSelectElement
-    const newLanguage = target.value || undefined
-
-    try {
-        await deckStore.updateDeck(deckId, { language: newLanguage })
-    } catch (e: any) {
-        editError.value = e.message || 'Failed to update language'
-    }
+const closeLexemePreview = (): void => {
+    previewLexeme.value = null
 }
 
 // Toggle deck visibility (public/private)
@@ -241,22 +235,51 @@ const handleClone = async (): Promise<void> => {
                         <template v-else>
                             <div class="flex items-start gap-1.5">
                                 <h1 class="text-xl font-semibold text-foreground leading-tight wrap-break-word flex-1">{{ deck.title }}</h1>
-                                <IconButton
-                                    v-if="isOwner"
-                                    @click="startTitleEdit"
-                                    title="Edit title"
-                                >
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-4 w-4"
-                                        aria-hidden="true"
+                                <div v-if="isOwner" class="flex items-center gap-1">
+                                    <IconButton
+                                        @click="handleVisibilityToggle"
+                                        :title="deck.isPublic ? 'Make private' : 'Share publicly'"
+                                        :aria-label="deck.isPublic ? 'Make private' : 'Share publicly'"
                                     >
-                                        <path d="M4 20h4l10-10a2 2 0 0 0-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-                                        <path d="m13.5 6.5 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                </IconButton>
+                                        <svg
+                                            v-if="deck.isPublic"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-4 w-4"
+                                            aria-hidden="true"
+                                        >
+                                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
+                                            <path d="M3 12h18M12 3c2.5 2.5 4 5.6 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.6-4-9s1.5-6.5 4-9Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <svg
+                                            v-else
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-4 w-4"
+                                            aria-hidden="true"
+                                        >
+                                            <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.7" />
+                                            <path d="M8 10V8a4 4 0 1 1 8 0v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                                        </svg>
+                                    </IconButton>
+                                    <IconButton
+                                        @click="startTitleEdit"
+                                        title="Edit title"
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-4 w-4"
+                                            aria-hidden="true"
+                                        >
+                                            <path d="M4 20h4l10-10a2 2 0 0 0-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                                            <path d="m13.5 6.5 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </IconButton>
+                                </div>
                             </div>
                         </template>
 
@@ -289,49 +312,6 @@ const handleClone = async (): Promise<void> => {
                         </div>
 
                         <p v-if="titleError" class="text-xs text-destructive">{{ titleError }}</p>
-
-                        <div class="inline-flex w-fit max-w-full flex-wrap items-center gap-2 p-2 border border-border bg-secondary/25"
-                            style="border-radius: 0.5rem;">
-                            <span class="text-xs text-muted-foreground font-medium px-1">Deck settings</span>
-                            <select v-if="isOwner" :value="deck.language || ''" @change="handleLanguageChange"
-                                class="form-control control-sm w-auto! min-w-40" title="Reference language">
-                                <option value="">No language</option>
-                                <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">
-                                    {{ lang.name }}
-                                </option>
-                            </select>
-                            <AppBadge v-else-if="deck.language" size="sm">
-                                {{availableLanguages.find(l => l.code === deck?.language)?.name || deck?.language}}
-                            </AppBadge>
-
-                            <AppButton v-if="isOwner" @click="handleVisibilityToggle" variant="outline" size="sm"
-                                class="gap-1.5"
-                                :title="deck.isPublic ? 'Click to make private' : 'Click to share publicly'">
-                                <svg
-                                    v-if="deck.isPublic"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-3.5 w-3.5"
-                                    aria-hidden="true"
-                                >
-                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7" />
-                                    <path d="M3 12h18M12 3c2.5 2.5 4 5.6 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.6-4-9s1.5-6.5 4-9Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                                <svg
-                                    v-else
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-3.5 w-3.5"
-                                    aria-hidden="true"
-                                >
-                                    <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.7" />
-                                    <path d="M8 10V8a4 4 0 1 1 8 0v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-                                </svg>
-                                {{ deck.isPublic ? 'Public' : 'Private' }}
-                            </AppButton>
-                        </div>
                     </div>
 
                     <div class="flex gap-2 w-full sm:w-auto sm:justify-end">
@@ -363,8 +343,10 @@ const handleClone = async (): Promise<void> => {
                             :key="index"
                             :lexeme="lexeme"
                             :removable="isOwner"
+                            :viewable="true"
                             :disabled="hasPendingChanges"
                             @remove="handleRemoveLexeme"
+                            @view="openLexemePreview"
                         />
                     </div>
                 </div>
@@ -489,6 +471,25 @@ const handleClone = async (): Promise<void> => {
                     </AppButton>
                 </div>
             </div>
+
+            <Teleport to="body">
+                <div
+                    v-if="previewLexeme"
+                    class="fixed inset-0 z-50 bg-black/50 p-4 sm:p-6 flex items-center justify-center"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Lexeme preview"
+                    @click.self="closeLexemePreview"
+                >
+                    <div class="w-full max-w-xl bg-card border border-border p-4 sm:p-5" style="border-radius: 0.5rem;">
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <h3 class="text-sm font-medium text-foreground">Lexeme preview</h3>
+                            <AppButton size="xs" variant="secondary" @click="closeLexemePreview">Close</AppButton>
+                        </div>
+                        <LexemeFlashcardPreview :lexeme="previewLexeme" />
+                    </div>
+                </div>
+            </Teleport>
         </div>
     </div>
 </template>
