@@ -1,5 +1,5 @@
 
-# 🎴 Flashcards AI
+# Flashcards AI
 
 AI-powered flashcard application for language learning with spaced repetition.
 
@@ -67,12 +67,13 @@ cd frontend && npm run dev
 
 Visit **http://localhost:9050**
 
+
 ## Screenshots
 <img width="1479" height="858" alt="Screenshot 2026-04-17 at 17 33 39" src="https://github.com/user-attachments/assets/2b64bca3-2768-45ba-8680-1cd5fd8d9abf" />
 <img width="1479" height="858" alt="Screenshot 2026-04-17 at 17 34 27" src="https://github.com/user-attachments/assets/95ce8fb0-902b-48ab-819a-07cebfe8f7bb" />
 <img width="1479" height="858" alt="Screenshot 2026-04-17 at 17 35 57" src="https://github.com/user-attachments/assets/f3ced5e5-6f60-4fb5-80ab-364da74a3598" />
 
 
-## 📝 License
+## License
 
-MIT License - free for personal and commercial use.
+MIT License
