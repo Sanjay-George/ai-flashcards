@@ -7,38 +7,21 @@ const router = useRouter()
 const deckStore = useDeckStore()
 
 const userMessage = ref<string>('')
-const extractedText = ref<string>('')
-const uploadedImage = ref<File | null>(null)
-const isExtractingText = ref<boolean>(false)
+const uploadedFiles = ref<File[]>([])
 const isGenerating = ref<boolean>(false)
+const progressLabel = ref<string>('')
 const error = ref<string>('')
 
-const handleImageUpload = async (event: Event) => {
+const addFiles = (event: Event) => {
     const target = event.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (!file) return
-
-    uploadedImage.value = file
-    error.value = ''
-    isExtractingText.value = true
-
-    try {
-        const text = await deckStore.extractTextFromImage(file)
-        extractedText.value = text
-        if (!userMessage.value.trim()) {
-            userMessage.value = 'Create flashcards from the extracted text'
-        }
-    } catch (e: any) {
-        error.value = e.message || 'Failed to extract text from image'
-        uploadedImage.value = null
-    } finally {
-        isExtractingText.value = false
-    }
+    const incoming = Array.from(target.files ?? [])
+    const existingNames = new Set(uploadedFiles.value.map(f => f.name))
+    uploadedFiles.value.push(...incoming.filter(f => !existingNames.has(f.name)))
+    target.value = '' // reset so the same file can be re-selected after removal
 }
 
-const clearImage = () => {
-    uploadedImage.value = null
-    extractedText.value = ''
+const removeFile = (index: number) => {
+    uploadedFiles.value.splice(index, 1)
 }
 
 const generateDeck = async () => {
@@ -51,31 +34,44 @@ const generateDeck = async () => {
     isGenerating.value = true
 
     try {
-        const result = await deckStore.createDeckFromText(
-            userMessage.value,
-            extractedText.value || undefined
-        )
+        let extractedText: string | undefined
 
-        // Navigate to edit page with the generated deck
+        if (uploadedFiles.value.length > 0) {
+            progressLabel.value = 'Extracting text...'
+            const texts = await Promise.all(
+                uploadedFiles.value.map(async (file) => {
+                    try {
+                        return await deckStore.extractTextFromImage(file)
+                    } catch {
+                        throw new Error(`Failed to extract text from "${file.name}"`)
+                    }
+                })
+            )
+            extractedText = texts.join('\n\n---\n\n')
+        }
+
+        progressLabel.value = 'Generating deck...'
+        const result = await deckStore.createDeckFromText(userMessage.value, extractedText)
+
         router.push({
             name: 'EditGeneratedDeck',
             state: {
                 // @ts-expect-error - passing object directly in state, not ideal but works for now
                 generatedDeck: result,
-                initialMessage: userMessage.value + (extractedText.value ? '\n\nExtracted text: ' + extractedText.value : '')
+                initialMessage: userMessage.value + (extractedText ? '\n\nExtracted text: ' + extractedText : '')
             }
         })
     } catch (e: any) {
         error.value = e.message || 'Failed to generate deck'
     } finally {
         isGenerating.value = false
+        progressLabel.value = ''
     }
 }
 
 const resetForm = () => {
     userMessage.value = ''
-    extractedText.value = ''
-    uploadedImage.value = null
+    uploadedFiles.value = []
     error.value = ''
 }
 </script>
@@ -86,38 +82,34 @@ const resetForm = () => {
 
         <div class="card">
             <p class="text-sm text-muted-foreground mb-5 leading-relaxed">
-                Describe what you want to learn, or upload an image with text to extract.
+                Upload images and describe your learning goal, then generate your deck.
             </p>
 
             <!-- Image Upload Section -->
             <div class="mb-5">
-                <label class="inline-block cursor-pointer">
-                    <input type="file" accept="image/*" capture="environment" @change="handleImageUpload" class="hidden"
-                        :disabled="isGenerating || isExtractingText" />
-                    <span class="btn btn-secondary text-sm">
-                        {{ uploadedImage ? 'Change image' : 'Upload image' }}
-                    </span>
-                </label>
-
-                <div v-if="isExtractingText" class="flex items-center gap-2 mt-3 text-muted-foreground text-sm">
-                    <div class="w-3.5 h-3.5 border-2 border-border border-t-primary rounded-full animate-spin"></div>
-                    <span>Extracting text...</span>
+                <div class="flex gap-2">
+                    <label class="inline-block cursor-pointer">
+                        <input type="file" accept="image/*" multiple @change="addFiles" class="hidden"
+                            :disabled="isGenerating" />
+                        <span class="btn btn-secondary text-sm">Add images</span>
+                    </label>
+                    <label class="inline-block cursor-pointer">
+                        <input type="file" accept="image/*" capture="environment" @change="addFiles" class="hidden"
+                            :disabled="isGenerating" />
+                        <span class="btn btn-secondary text-sm">Take photo</span>
+                    </label>
                 </div>
 
-                <div v-if="uploadedImage && !isExtractingText" class="mt-3 p-3 bg-secondary border border-border"
-                    style="border-radius: 0.375rem;">
-                    <div class="flex justify-between items-center mb-2 text-sm text-foreground">
-                        <span>{{ uploadedImage.name }}</span>
-                        <button @click="clearImage"
-                            class="text-destructive/70 hover:text-destructive text-sm cursor-pointer transition-colors"
-                            type="button">Remove</button>
-                    </div>
-                    <div v-if="extractedText" class="bg-background p-3 text-sm border border-border"
-                        style="border-radius: 0.25rem;">
-                        <p class="text-muted-foreground leading-relaxed max-h-32 overflow-y-auto m-0">{{
-                            extractedText }}</p>
-                    </div>
-                </div>
+                <ul v-if="uploadedFiles.length > 0" class="mt-3 space-y-1">
+                    <li v-for="(file, i) in uploadedFiles" :key="file.name"
+                        class="flex justify-between items-center px-3 py-2 bg-secondary border border-border text-sm"
+                        style="border-radius: 0.375rem;">
+                        <span class="text-foreground truncate mr-3">{{ file.name }}</span>
+                        <button @click="removeFile(i)"
+                            class="text-destructive/70 hover:text-destructive cursor-pointer transition-colors shrink-0"
+                            type="button" :disabled="isGenerating">Remove</button>
+                    </li>
+                </ul>
             </div>
 
             <div class="form-group">
@@ -129,9 +121,10 @@ const resetForm = () => {
             <div class="flex gap-3">
                 <button @click="generateDeck" class="btn btn-primary text-sm"
                     :disabled="isGenerating || !userMessage.trim()">
-                    {{ isGenerating ? 'Generating...' : 'Generate deck' }}
+                    {{ isGenerating ? progressLabel : 'Generate deck' }}
                 </button>
-                <button v-if="userMessage || uploadedImage" @click="resetForm" class="btn btn-secondary text-sm">
+                <button v-if="userMessage || uploadedFiles.length" @click="resetForm"
+                    class="btn btn-secondary text-sm" :disabled="isGenerating">
                     Reset
                 </button>
             </div>
@@ -143,7 +136,7 @@ const resetForm = () => {
 
             <div v-if="isGenerating" class="loading mt-6">
                 <div class="spinner"></div>
-                <p class="mt-3 text-sm">Generating your deck...</p>
+                <p class="mt-3 text-sm">{{ progressLabel }}</p>
             </div>
         </div>
     </div>
