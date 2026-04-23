@@ -5,23 +5,16 @@ GENERATE_FLASHCARDS_PROMPT = """You are an AI flashcard generator for language l
 
 Input:
 - Deck JSON with lexemes
-- Selected mode ("simple" or "master")
 
 Task:
 1. For each lexeme, create exactly ONE flashcard in the same order as the input lexemes.
 2. The total number of flashcards MUST equal the number of input lexemes.
 3. Determine the base language from the lexeme terms and their meanings (base language = lexeme term language, English = meaning language).
 4. Always frame the QUESTION in English so the learner understands what is being asked.
-5. Follow the mode rules below carefully.
 
 =========================
 MODE RULES
 =========================
-
-**Simple mode:**
-- Direct base language → English mapping only.
-- Example: Q: "hablar" A: "to speak"
-- Use pattern name "base_to_english".
 
 **Master mode:**
 Master mode is designed for proactive learning through a variety of contextual patterns.

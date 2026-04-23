@@ -25,7 +25,7 @@ const isEditingTitle = ref<boolean>(false)
 const titleDraft = ref<string>('')
 const titleError = ref<string>('')
 const generatingFlashcards = ref<boolean>(false)
-const selectedMode = ref<'simple' | 'master'>('simple')
+const selectedMode = ref<'simple' | 'flip' | 'master'>('simple')
 const sessionSize = 10
 const deckMastery = ref<DeckMastery | null>(null)
 const previewLexeme = ref<Lexeme | null>(null)
@@ -127,28 +127,42 @@ const studyWithSRS = async (): Promise<void> => {
             return
         }
 
-        // Generate flashcards dynamically with selected mode
-        const result = await flashcardStore.generateFlashcards(
-            {
-                title: deck.value.title,
-                lexemes: dueLexemes
-            },
-            selectedMode.value
-        )
+        let sessionCards: any[]
 
-        // Create session flashcards (not saved to DB, just for the session)
-        const sessionCards = result.flashcards.map((fc: any, index: number) => ({
-            _id: `session-${index}-${Date.now()}`, // Temporary ID
-            deckId: deckId,
-            lexemeId: dueLexemes[index % dueLexemes.length].term,
-            question: fc.question,
-            answer: fc.answer,
-            pattern: fc.pattern,
-            mode: selectedMode.value,
-            ratings: [],
-            // Include lexeme data for rating
-            lexeme: dueLexemes[index % dueLexemes.length]
-        }))
+        if (selectedMode.value === 'simple' || selectedMode.value === 'flip') {
+            // Rule-based: no AI — directly map lexemes to flashcards
+            sessionCards = dueLexemes.map((lexeme, index) => ({
+                _id: `session-${index}-${Date.now()}`,
+                deckId: deckId,
+                lexemeId: lexeme.term,
+                question: selectedMode.value === 'flip' ? lexeme.meaning : lexeme.term,
+                answer: selectedMode.value === 'flip' ? lexeme.term : lexeme.meaning,
+                mode: selectedMode.value,
+                ratings: [],
+                lexeme,
+            }))
+        } else {
+            // Custom (master) mode: AI-generated flashcards
+            const result = await flashcardStore.generateFlashcards(
+                {
+                    title: deck.value.title,
+                    lexemes: dueLexemes
+                },
+                'master'
+            )
+
+            sessionCards = result.flashcards.map((fc: any, index: number) => ({
+                _id: `session-${index}-${Date.now()}`,
+                deckId: deckId,
+                lexemeId: dueLexemes[index % dueLexemes.length].term,
+                question: fc.question,
+                answer: fc.answer,
+                pattern: fc.pattern,
+                mode: selectedMode.value,
+                ratings: [],
+                lexeme: dueLexemes[index % dueLexemes.length]
+            }))
+        }
 
         flashcardStore.setSessionFlashcards(sessionCards)
         router.push(`/study/${deckId}`)
@@ -433,22 +447,31 @@ const handleClone = async (): Promise<void> => {
             <div class="card">
                 <h2 class="text-sm font-medium mb-3 text-foreground">Study</h2>
 
-                <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                     <label class="cursor-pointer">
                         <input type="radio" v-model="selectedMode" value="simple" class="hidden peer" />
                         <div class="p-3 border border-border transition-colors peer-checked:border-primary peer-checked:bg-primary/10"
                             style="border-radius: 0.375rem;">
                             <h3 class="text-sm font-medium text-foreground peer-checked:text-primary">Simple</h3>
-                            <p class="text-xs text-muted-foreground mt-0.5">Meaning recall</p>
+                            <p class="text-xs text-muted-foreground mt-0.5">Term → meaning</p>
                         </div>
                     </label>
 
                     <label class="cursor-pointer">
-                        <input type="radio" v-model="selectedMode" value="master" class="hidden peer" />
+                        <input type="radio" v-model="selectedMode" value="flip" class="hidden peer" />
                         <div class="p-3 border border-border transition-colors peer-checked:border-primary peer-checked:bg-primary/10"
                             style="border-radius: 0.375rem;">
-                            <h3 class="text-sm font-medium text-foreground peer-checked:text-primary">Master</h3>
-                            <p class="text-xs text-muted-foreground mt-0.5">Context & fill-in-blank</p>
+                            <h3 class="text-sm font-medium text-foreground peer-checked:text-primary">Flip</h3>
+                            <p class="text-xs text-muted-foreground mt-0.5">Meaning → term</p>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer col-span-2 sm:col-span-1">
+                        <input type="radio" v-model="selectedMode" value="master" class="hidden peer" />
+                        <div class="p-3 border border-border transition-colors peer-checked:border-primary peer-checked:bg-primary/10 sm:text-left text-center"
+                            style="border-radius: 0.375rem;">
+                            <h3 class="text-sm font-medium text-foreground peer-checked:text-primary">Custom</h3>
+                            <p class="text-xs text-muted-foreground mt-0.5">Context &amp; fill-in-blank (AI)</p>
                         </div>
                     </label>
                 </div>

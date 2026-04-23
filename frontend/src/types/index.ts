@@ -37,7 +37,7 @@ export interface Flashcard {
     question: string;
     answer: string;
     pattern?: Pattern;
-    mode: 'simple' | 'master';
+    mode: 'simple' | 'flip' | 'master';
     ratings: number[];
     lastReviewed?: string;
     createdAt?: string;
@@ -87,7 +87,7 @@ export interface GenerateFlashcardsRequest {
         title: string;
         lexemes: Lexeme[];
     };
-    mode: 'simple' | 'master';
+    mode: 'master';
 }
 
 export interface FlashcardItem {
