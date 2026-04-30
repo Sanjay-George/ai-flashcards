@@ -331,30 +331,49 @@ async def edit_deck(request: DeckEditRequest, user=Depends(verify_firebase_token
         existing_lexemes = _extract_existing_lexemes(request.deck_json)
         style = _infer_meaning_style(existing_lexemes)
 
-        user_content = f"Current deck JSON: {json.dumps(request.deck_json)}\n"
-        if style:
-            user_content += (
-                f"Detected dominant meaning format shape: {style['shape']}\n"
-                f"Style examples to follow: {json.dumps(style['examples'])}\n"
-            )
+        # Pre-classify likely action to decide how much context to include.
+        likely_action = _normalize_action("", request.instruction)
 
-        if request.message_history and len(request.message_history) > 0:
-            user_content += "Previous conversation:\n"
-            for msg in request.message_history:
-                user_content += f"{msg.role}: {msg.content}\n"
-            user_content += "\n"
+        # ── Instruction first — models attend most to the beginning of context ──
+        user_content = f"User instruction: {request.instruction}\n\n"
 
-        user_content += f"User instruction: {request.instruction}"
-
+        # ── Background context ──
         if request.deck_context:
             ctx = request.deck_context
             if ctx.creation_prompt:
-                user_content += f"\n\nDeck creation goal: {ctx.creation_prompt}"
-            if ctx.extracted_text:
-                user_content += f"\nSource material (excerpt): {ctx.extracted_text[:500]}"
+                user_content += f"Deck creation goal: {ctx.creation_prompt}\n"
             if ctx.edit_history:
                 recent = ctx.edit_history[-5:]
-                user_content += f"\nPrevious edits: {json.dumps(recent)}"
+                user_content += f"Previous edits: {json.dumps(recent)}\n"
+            if ctx.extracted_text:
+                user_content += f"Source material (excerpt): {ctx.extracted_text[:500]}\n"
+            user_content += "\n"
+
+        # ── Prior turns — skip if last message is a repeat of the current instruction ──
+        if request.message_history:
+            last_content = (request.message_history[-1].content or "").strip().lower()
+            is_duplicate = last_content == request.instruction.strip().lower()
+            history_to_show = request.message_history[:-1] if is_duplicate else request.message_history
+            if history_to_show:
+                user_content += "Previous conversation:\n"
+                for msg in history_to_show:
+                    user_content += f"{msg.role}: {msg.content}\n"
+                user_content += "\n"
+
+        # ── Deck payload — slimmed for remove (no meanings needed to choose what to delete) ──
+        if likely_action == "remove":
+            term_list = "\n".join(
+                f"[{i + 1}] {lex.term}"
+                for i, lex in enumerate(existing_lexemes)
+            )
+            user_content += f"Current deck terms ({len(existing_lexemes)} total):\n{term_list}\n"
+        else:
+            user_content += f"Current deck JSON: {json.dumps(request.deck_json)}\n"
+            if style:
+                user_content += (
+                    f"Detected dominant meaning format shape: {style['shape']}\n"
+                    f"Style examples to follow: {json.dumps(style['examples'])}\n"
+                )
 
         response = await ai_client.generate(system_prompt, user_content)
         result = json.loads(response)

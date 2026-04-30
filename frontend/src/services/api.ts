@@ -14,7 +14,8 @@ export const aiApi: AxiosInstance = axios.create({
     baseURL: `${import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:9052'}/ai`,
     headers: {
         'Content-Type': 'application/json'
-    }
+    },
+    timeout: 30000
 })
 
 // Request interceptor to add auth token

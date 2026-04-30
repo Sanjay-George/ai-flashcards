@@ -123,6 +123,7 @@ const sendMessage = async () => {
             startInactivityTimer()
         }
     } catch {
+        userInput.value = msg
         scrollToBottom()
     }
 }
@@ -385,7 +386,7 @@ const getMessageFeedback = (messageIndex: number) => {
             @cancel-transcription="cancelTranscription" @request-feedback="requestFeedback"
             @toggle-translations="showTranslations = !showTranslations"
             @toggle-recording="isRecording ? stopRecording() : startRecording()" @update:user-input="userInput = $event"
-            @send-message="sendMessage" />
+            @send-message="sendMessage" @dismiss-error="store.error = null" />
 
         <ConversationFeedbackStep v-if="phase === 'feedback' && store.feedback" :feedback="store.feedback"
             :topic-label="TOPIC_OPTIONS.find(t => t.id === store.topic)?.label || store.topic"

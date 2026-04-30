@@ -37,6 +37,7 @@ const emit = defineEmits<{
     (e: 'toggleRecording'): void
     (e: 'update:userInput', value: string): void
     (e: 'sendMessage'): void
+    (e: 'dismissError'): void
 }>()
 </script>
 
@@ -131,9 +132,10 @@ const emit = defineEmits<{
             </div>
         </div>
 
-        <div v-if="error" class="mb-2 p-2 bg-destructive/10 text-destructive text-xs text-center"
+        <div v-if="error" class="mb-2 p-2 bg-destructive/10 text-destructive text-xs flex items-center justify-between gap-2"
             style="border-radius: 0.375rem;">
-            {{ error }}
+            <span>{{ error }}</span>
+            <button @click="emit('dismissError')" class="shrink-0 leading-none hover:opacity-70 transition-opacity cursor-pointer" title="Dismiss">&times;</button>
         </div>
 
         <div v-if="showTranscriptionConfirm" class="mb-2 p-3 border border-foreground" style="border-radius: 0.375rem;">

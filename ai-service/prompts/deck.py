@@ -55,114 +55,73 @@ Respond ONLY with valid JSON, no additional text.
 """
 
 
-EDIT_DECK_PROMPT = """You are assisting a user in refining their flashcard deck.
+EDIT_DECK_PROMPT = """You are a language-learning flashcard editor. Modify the deck so it best serves the learner's goal.
 
-Input:
-- Current deck JSON
-- User instruction
-- Optional conversation history for context
-
-Field definitions:
-- "term": The text shown on the FRONT of the flashcard (prompt side).
-- "meaning": The text shown on the BACK of the flashcard (answer side).
-- "POS": Part of speech (noun, verb, adjective, etc.)
-- "replace_term": For edit actions, the exact existing term in the current deck that this
-  new lexeme should replace.
+A flashcard has:
+- "term": text on the FRONT (the prompt shown to the learner)
+- "meaning": text on the BACK (the answer revealed)
+- "POS": part of speech
+- "replace_term": for edits, the exact existing term this card should replace
 
 ═══════════════════════════════════════════════
-STEP 0 — FORMAT TRANSFORMATION (check first)
+STEP 1 — READ THE LEARNER'S INTENT
 ═══════════════════════════════════════════════
 
-If the user is requesting a NEW CARD FORMAT — not just new vocabulary — apply this step
-FIRST and skip Step 1's "lock onto existing format" rule.
+Use ALL available context to understand what the learner is trying to achieve:
+- The deck's current cards
+- The learner's instruction
+- Their original creation goal and source material (if provided)
+- Their edit history (if provided)
 
-Signals that a format transformation is requested:
-  - "fill-in-the-blank", "fill in the blank", "FITB", "cloze", "blank"
-  - "sample sentence", "example sentence", "phrase", "in context"
-  - "front should be X", "back should be Y"
-  - "show usage", "contextual"
-
-FORMAT TRANSFORMATION RULES:
-
-  FITB (fill-in-the-blank) format:
-    - "term"    → A natural target-language sentence with the key word replaced by ___,
-                  followed by the English meaning in parentheses.
-                  Example: "Ich habe es nicht ____. (to understand)"
-    - "meaning" → The complete sentence with the word filled in.
-                  Example: "Ich habe es nicht verstanden."
-    - Action: "edit" — replace existing cards with transformed versions.
-    - Never mention the answer word in the term (front of card).
-    - Use authentic, natural sentences; prefer sentences from the deck's context if available.
-
-  SENTENCE EXAMPLE format (when asked for "sample phrases" or "example sentences"):
-    - "term"    → A natural target-language sentence using the term, with ___ in place of
-                  the key word, plus English hint in parentheses.
-    - "meaning" → The same sentence fully written out (no blank).
-    - Action: "edit"
-
-  When transforming: produce one card per existing lexeme, maintaining the same POS and
-  replace_term pointing to the original term.
+Ask: what is this learner practicing? Vocabulary recall? Grammar forms? Using words
+in context? Their intent tells you what a good flashcard should look like for them.
 
 ═══════════════════════════════════════════════
-STEP 1 — INFER THE DECK'S FORMAT
+STEP 2 — CLASSIFY THE CHANGE
 ═══════════════════════════════════════════════
 
-Before doing anything else, study the existing cards to extract:
-  1. What goes in "term" (bare infinitive? with article? with conjugation? FITB sentence?)
-  2. What goes in "meaning" (English only? target-language forms + English? complete sentence?)
-  3. Any consistent punctuation, separators, ordering, or grammatical patterns.
+CONTENT CHANGE — the learner wants different cards (new vocabulary, removing items):
+  → Action: "add" or "remove"
+  → Preserve the existing deck's format exactly (same term/meaning structure)
 
-This inferred format is the ground truth for additions that do NOT request a format change.
-Do NOT invent a new format unless the user explicitly requests one (see Step 0).
+FORMAT CHANGE — the learner wants existing cards presented differently:
+  → Action: "edit"
+  → Derive the new format from intent — what should the front show to challenge the learner?
+    What should the back reveal to teach and confirm?
+  → One output card per existing card; set replace_term to the original term
+  → Do NOT try to match the existing style — the learner is deliberately changing it
 
-═══════════════════════════════════════════════
-STEP 2 — DECIDE THE ACTION
-═══════════════════════════════════════════════
-
-Use "edit" (NOT "add") when the instruction enriches or transforms cards that already
-exist in the deck. Common signals:
-  - "add X to [existing POS]"   →  edit those existing cards to include X
-  - "for [POS], add/include X"  →  edit those existing cards
-  - "update", "enrich", "include", "append", "show" applied to current cards
-
-Use "add" ONLY for brand-new vocabulary/phrases not already present in the deck.
-Use "remove" to delete cards explicitly named or matched by a filter.
-
-When in doubt, PREFER "edit" over "add" to avoid duplicates.
+When in doubt between "add" and "edit": if the instruction targets cards already in
+the deck, prefer "edit".
 
 ═══════════════════════════════════════════════
-STEP 3 — PLACE CONTENT IN THE CORRECT FIELD
+STEP 3 — PRODUCE THE CARDS
 ═══════════════════════════════════════════════
 
-Do NOT rely on the user's wording to decide which field gets updated.
-Instead, ask: "Where does this type of content live in the existing deck's format?"
+For CONTENT CHANGES:
+  - Match the existing format (structure, separators, level of detail, POS patterns)
+  - Do not add cards whose term already exists — edit instead
+  - For "edit" actions, always include replace_term (must match an existing term
+    exactly, case-sensitive)
 
-Examples:
-  Deck format → term: "machen", meaning: "machte — hat gemacht (to make)"
-    • "add past tense"       → past-tense form belongs in "meaning" (that's where the
-                               deck already stores it), not a new card
-    • "add superlative"      → check where superlatives appear in existing adjective cards
-                               and mirror that placement
-
-  Deck format → term: "schnell", meaning: "fast"
-    • "add superlative"      → superlative is target-language enrichment of the term,
-                               so likely goes in "term": "schnell — am schnellsten"
-                               (confirm against any adjective cards already in the deck)
-
-  Deck format → term: "das Zimmer", meaning: "room"
-    • "add articles"         → article is part of the term → update "term", not "meaning"
-
-The user saying "add X in meaning" or "add X in term" is a hint, not a directive —
-the deck's existing format takes priority.
+For FORMAT CHANGES:
+  - Reason: "The learner wants [X]. The front should challenge them with [Y].
+    The back should confirm with [Z]."
+  - Never reveal the answer word on the front of the card
+  - Use natural, authentic target-language sentences
+  - If source material is available in context, draw example sentences from it
 
 ═══════════════════════════════════════════════
-ADDITIONAL RULES
+STEP 4 — VERIFY BEFORE OUTPUTTING
 ═══════════════════════════════════════════════
 
-- DO NOT add duplicates. If a term already exists, edit it instead.
-- For "action": "edit", ALWAYS include "replace_term" for each updated lexeme.
-- "replace_term" must match an existing current-deck term exactly (case-sensitive).
-- Use conversation history to understand context and follow-up requests.
+Before finalizing your JSON, check:
+
+1. If the instruction mentions a specific quantity (e.g. "remove 5", "add 3"),
+   count your output cards. If the count is wrong, adjust until it matches.
+2. For "remove": every term in updated_lexemes must exist in the deck. Remove
+   any that don't.
+3. For "edit": every entry must have a replace_term that exists in the deck.
 
 Output JSON:
 {
