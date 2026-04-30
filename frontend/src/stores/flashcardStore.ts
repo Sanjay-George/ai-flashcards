@@ -4,7 +4,8 @@ import api, { aiApi } from '../services/api'
 import type {
     Flashcard,
     Pattern,
-    GenerateFlashcardsResponse
+    GenerateFlashcardsResponse,
+    DeckPromptContext
 } from '../types/index'
 
 export { Flashcard, Pattern }
@@ -47,13 +48,14 @@ export const useFlashcardStore = defineStore('flashcard', () => {
     }
 
     // Generate flashcards from deck
-    const generateFlashcards = async (deckJson: any, mode: 'simple' | 'master'): Promise<GenerateFlashcardsResponse> => {
+    const generateFlashcards = async (deckJson: any, mode: 'simple' | 'master', deckContext?: DeckPromptContext | null): Promise<GenerateFlashcardsResponse> => {
         loading.value = true
         error.value = null
         try {
             const response = await aiApi.post<GenerateFlashcardsResponse>('/generate_flashcards', {
                 deck_json: deckJson,
-                mode
+                mode,
+                deck_context: deckContext ?? undefined
             })
             return response.data
         } catch (e: any) {

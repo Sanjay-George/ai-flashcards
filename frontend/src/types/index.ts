@@ -12,6 +12,12 @@ export interface Lexeme {
     lastReviewed?: string;
 }
 
+export interface DeckPromptContext {
+    creationPrompt?: string;
+    extractedText?: string;
+    editHistory?: string[];
+}
+
 export interface Deck {
     _id: string;
     title: string;
@@ -20,6 +26,7 @@ export interface Deck {
     userId: string;     // Firebase user ID (owner)
     isPublic: boolean;  // Whether deck is publicly visible
     lexemes: Lexeme[];
+    promptContext?: DeckPromptContext;
     createdAt: string;
     updatedAt: string;
 }
@@ -71,6 +78,7 @@ export interface EditDeckRequest {
     };
     instruction: string;
     message_history?: ChatMessage[];
+    deck_context?: DeckPromptContext;
 }
 
 export interface EditLexeme extends Lexeme {
@@ -88,6 +96,7 @@ export interface GenerateFlashcardsRequest {
         lexemes: Lexeme[];
     };
     mode: 'master';
+    deck_context?: DeckPromptContext;
 }
 
 export interface FlashcardItem {

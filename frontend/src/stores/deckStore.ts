@@ -6,7 +6,8 @@ import type {
     Lexeme,
     CreateDeckResponse,
     EditDeckResponse,
-    ChatMessage
+    ChatMessage,
+    DeckPromptContext
 } from '../types/index'
 
 export { Deck, Lexeme }
@@ -122,7 +123,8 @@ export const useDeckStore = defineStore('deck', () => {
     const editDeckWithAI = async (
         deckJson: any,
         instruction: string,
-        messageHistory?: ChatMessage[]
+        messageHistory?: ChatMessage[],
+        deckContext?: DeckPromptContext | null
     ): Promise<EditDeckResponse> => {
         loading.value = true
         error.value = null
@@ -130,7 +132,8 @@ export const useDeckStore = defineStore('deck', () => {
             const response = await aiApi.post<EditDeckResponse>('/edit_deck', {
                 deck_json: deckJson,
                 instruction,
-                message_history: messageHistory
+                message_history: messageHistory,
+                deck_context: deckContext ?? undefined
             })
             return response.data
         } catch (e: any) {

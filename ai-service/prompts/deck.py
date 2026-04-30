@@ -63,26 +63,57 @@ Input:
 - Optional conversation history for context
 
 Field definitions:
-- "term": The word/phrase in the TARGET language being learned (e.g., German, Spanish).
-- "meaning": The definition, translation, or structured form associated with the term.
-  Content here is determined by the deck's established format — it may be English only,
-  target-language forms only, or a mix (e.g., "machte — hat gemacht (to make)").
+- "term": The text shown on the FRONT of the flashcard (prompt side).
+- "meaning": The text shown on the BACK of the flashcard (answer side).
 - "POS": Part of speech (noun, verb, adjective, etc.)
 - "replace_term": For edit actions, the exact existing term in the current deck that this
   new lexeme should replace.
+
+═══════════════════════════════════════════════
+STEP 0 — FORMAT TRANSFORMATION (check first)
+═══════════════════════════════════════════════
+
+If the user is requesting a NEW CARD FORMAT — not just new vocabulary — apply this step
+FIRST and skip Step 1's "lock onto existing format" rule.
+
+Signals that a format transformation is requested:
+  - "fill-in-the-blank", "fill in the blank", "FITB", "cloze", "blank"
+  - "sample sentence", "example sentence", "phrase", "in context"
+  - "front should be X", "back should be Y"
+  - "show usage", "contextual"
+
+FORMAT TRANSFORMATION RULES:
+
+  FITB (fill-in-the-blank) format:
+    - "term"    → A natural target-language sentence with the key word replaced by ___,
+                  followed by the English meaning in parentheses.
+                  Example: "Ich habe es nicht ____. (to understand)"
+    - "meaning" → The complete sentence with the word filled in.
+                  Example: "Ich habe es nicht verstanden."
+    - Action: "edit" — replace existing cards with transformed versions.
+    - Never mention the answer word in the term (front of card).
+    - Use authentic, natural sentences; prefer sentences from the deck's context if available.
+
+  SENTENCE EXAMPLE format (when asked for "sample phrases" or "example sentences"):
+    - "term"    → A natural target-language sentence using the term, with ___ in place of
+                  the key word, plus English hint in parentheses.
+    - "meaning" → The same sentence fully written out (no blank).
+    - Action: "edit"
+
+  When transforming: produce one card per existing lexeme, maintaining the same POS and
+  replace_term pointing to the original term.
 
 ═══════════════════════════════════════════════
 STEP 1 — INFER THE DECK'S FORMAT
 ═══════════════════════════════════════════════
 
 Before doing anything else, study the existing cards to extract:
-  1. What goes in "term" (bare infinitive? with article? with conjugation?)
-  2. What goes in "meaning" (English only? target-language forms + English? a pattern like
-     "machte — hat gemacht (to make)"?)
+  1. What goes in "term" (bare infinitive? with article? with conjugation? FITB sentence?)
+  2. What goes in "meaning" (English only? target-language forms + English? complete sentence?)
   3. Any consistent punctuation, separators, ordering, or grammatical patterns.
 
-This inferred format is the ground truth. All edits and additions MUST match it exactly.
-Do NOT invent a new format. Do NOT partially apply the format.
+This inferred format is the ground truth for additions that do NOT request a format change.
+Do NOT invent a new format unless the user explicitly requests one (see Step 0).
 
 ═══════════════════════════════════════════════
 STEP 2 — DECIDE THE ACTION

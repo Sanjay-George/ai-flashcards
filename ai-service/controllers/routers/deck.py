@@ -346,6 +346,16 @@ async def edit_deck(request: DeckEditRequest, user=Depends(verify_firebase_token
 
         user_content += f"User instruction: {request.instruction}"
 
+        if request.deck_context:
+            ctx = request.deck_context
+            if ctx.creation_prompt:
+                user_content += f"\n\nDeck creation goal: {ctx.creation_prompt}"
+            if ctx.extracted_text:
+                user_content += f"\nSource material (excerpt): {ctx.extracted_text[:500]}"
+            if ctx.edit_history:
+                recent = ctx.edit_history[-5:]
+                user_content += f"\nPrevious edits: {json.dumps(recent)}"
+
         response = await ai_client.generate(system_prompt, user_content)
         result = json.loads(response)
         deck = DeckEditResponse(**result)

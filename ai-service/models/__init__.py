@@ -10,6 +10,12 @@ class Lexeme(BaseModel):
     mastery: Optional[float] = 0.0
 
 
+class DeckContext(BaseModel):
+    creation_prompt: Optional[str] = None
+    extracted_text: Optional[str] = None
+    edit_history: Optional[List[str]] = None
+
+
 class DeckCreateRequest(BaseModel):
     text: Optional[str] = None
     user_message: str
@@ -31,6 +37,7 @@ class DeckEditRequest(BaseModel):
     deck_json: Dict[str, Any]
     instruction: str
     message_history: Optional[List[ChatMessage]] = None
+    deck_context: Optional["DeckContext"] = None
 
 
 class EditLexeme(Lexeme):
@@ -58,6 +65,7 @@ class FlashcardItem(BaseModel):
 class FlashcardGenerateRequest(BaseModel):
     deck_json: Dict[str, Any]
     mode: str = "simple"
+    deck_context: Optional["DeckContext"] = None
 
 
 class FlashcardGenerateResponse(BaseModel):

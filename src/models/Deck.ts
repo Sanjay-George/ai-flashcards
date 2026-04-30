@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IPromptContext {
+    creationPrompt?: string;
+    extractedText?: string;
+    editHistory?: string[];
+}
+
 export interface ILexeme {
     term: string;
     meaning: string;
@@ -19,6 +25,7 @@ export interface IDeck extends Document {
     userId: string;     // Firebase user ID (owner)
     isPublic: boolean;  // Whether deck is publicly visible
     lexemes: ILexeme[];
+    promptContext?: IPromptContext;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -42,6 +49,11 @@ const DeckSchema = new Schema<IDeck>({
     userId: { type: String, required: true, index: true },  // Firebase user ID
     isPublic: { type: Boolean, default: false },  // Private by default
     lexemes: [LexemeSchema],
+    promptContext: {
+        creationPrompt: { type: String },
+        extractedText: { type: String },
+        editHistory: [{ type: String }],
+    },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
