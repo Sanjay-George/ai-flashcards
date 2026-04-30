@@ -412,7 +412,7 @@ async def edit_deck(request: DeckEditRequest, user=Depends(verify_firebase_token
                     f"{missing_replace}"
                 )
 
-        if style and deck.action in {"add", "edit"} and deck.updated_lexemes:
+        if style and deck.action == "add" and deck.updated_lexemes:
             non_conforming_indexes = [
                 index
                 for index, lex in enumerate(deck.updated_lexemes)

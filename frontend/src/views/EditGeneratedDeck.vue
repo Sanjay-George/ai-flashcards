@@ -6,8 +6,10 @@ import type { CreateDeckResponse, DeckPromptContext } from '../types/index'
 import AppButton from '../components/ui/AppButton.vue'
 import AppBadge from '../components/ui/AppBadge.vue'
 import LexemeListItem from '../components/deck/LexemeListItem.vue'
+import LexemeFlashcardPreview from '../components/deck/LexemeFlashcardPreview.vue'
 import PendingLexemeChanges from '../components/deck/PendingLexemeChanges.vue'
 import { useDeckAiEditLoop } from '../composables/useDeckAiEditLoop'
+import type { Lexeme } from '../types/index'
 
 const router = useRouter()
 const deckStore = useDeckStore()
@@ -18,6 +20,7 @@ const deckTitleDraft = ref<string>('')
 const titleError = ref<string>('')
 const creationPrompt = ref<string>('')
 const extractedText = ref<string>('')
+const previewLexeme = ref<Lexeme | null>(null)
 
 const {
     editInstruction,
@@ -219,6 +222,7 @@ const getLanguageName = (code: string): string => {
                     :pending-removals="pendingRemovals"
                     @undo="undoChanges"
                     @commit="commitChanges"
+                    @view="previewLexeme = $event"
                 />
 
                 <div v-else class="card">
@@ -252,4 +256,23 @@ const getLanguageName = (code: string): string => {
             </div>
         </div>
     </div>
+
+    <Teleport to="body">
+        <div
+            v-if="previewLexeme"
+            class="fixed inset-0 z-50 bg-black/50 p-4 sm:p-6 flex items-center justify-center"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Lexeme preview"
+            @click.self="previewLexeme = null"
+        >
+            <div class="w-full max-w-xl bg-card border border-border p-4 sm:p-5" style="border-radius: 0.5rem;">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-medium text-foreground">Lexeme preview</h3>
+                    <AppButton size="xs" variant="secondary" @click="previewLexeme = null">Close</AppButton>
+                </div>
+                <LexemeFlashcardPreview :lexeme="previewLexeme" />
+            </div>
+        </div>
+    </Teleport>
 </template>

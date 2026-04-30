@@ -382,6 +382,7 @@ const handleClone = async (): Promise<void> => {
                     :pending-removals="pendingRemovals"
                     @undo="undoChanges"
                     @commit="commitChanges"
+                    @view="openLexemePreview"
                 />
 
                 <!-- Edit Deck -->
