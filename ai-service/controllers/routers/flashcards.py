@@ -21,6 +21,15 @@ async def generate_flashcards(request: FlashcardGenerateRequest, user=Depends(ve
         user_content = f"""Deck: {json.dumps(request.deck_json)}
 Mode: {request.mode}"""
 
+        if request.deck_context:
+            ctx = request.deck_context
+            if ctx.creation_prompt:
+                user_content += f"\n\nLearner's goal: {ctx.creation_prompt}"
+            if ctx.extracted_text:
+                user_content += f"\nSource material (excerpt): {ctx.extracted_text[:500]}"
+            if ctx.edit_history:
+                user_content += f"\nPrevious edits: {json.dumps(ctx.edit_history[-5:])}"
+
         response = await ai_client.generate(system_prompt, user_content)
         result = json.loads(response)
         return FlashcardGenerateResponse(**result)

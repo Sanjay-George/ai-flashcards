@@ -58,7 +58,8 @@ const generateDeck = async () => {
             state: {
                 // @ts-expect-error - passing object directly in state, not ideal but works for now
                 generatedDeck: result,
-                initialMessage: userMessage.value + (extractedText ? '\n\nExtracted text: ' + extractedText : '')
+                initialMessage: userMessage.value,
+                extractedText: extractedText ?? ''
             }
         })
     } catch (e: any) {

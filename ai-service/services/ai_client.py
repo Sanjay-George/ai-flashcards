@@ -14,6 +14,7 @@ class AIClient:
         api_key = os.getenv("AZURE_OPENAI_API_KEY")
         endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
         deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
+        chat_deployment = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", deployment)
         api_version = os.getenv(
             "AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
 
@@ -22,7 +23,7 @@ class AIClient:
         if not endpoint:
             raise ValueError("AZURE_OPENAI_ENDPOINT not found in environment")
 
-        # Initialize LangChain Azure OpenAI client
+        # Primary LLM: large model, JSON mode, deterministic
         self.llm = AzureChatOpenAI(
             azure_endpoint=endpoint,
             api_key=api_key,
@@ -32,13 +33,23 @@ class AIClient:
             model_kwargs={"response_format": {"type": "json_object"}}
         )
 
-    async def generate(self, system_prompt: str, user_content: str, use_json_format: bool = True) -> str:
+        # Chat LLM: smaller model, plain text, slightly creative
+        self.chat_llm = AzureChatOpenAI(
+            azure_endpoint=endpoint,
+            api_key=api_key,
+            azure_deployment=chat_deployment,
+            api_version=api_version,
+            temperature=0.7
+        )
+
+    async def generate(self, system_prompt: str, user_content: str, use_json_format: bool = True, use_chat_model: bool = False) -> str:
         """Generate AI response using LangChain with Azure OpenAI.
 
         Args:
             system_prompt: System instruction for the model
             user_content: User message content
             use_json_format: Whether to enforce JSON response format (default: True)
+            use_chat_model: Use the smaller chat model instead of the primary model (default: False)
         """
 
         messages = [
@@ -46,11 +57,12 @@ class AIClient:
             HumanMessage(content=user_content)
         ]
 
-        # Override model_kwargs if JSON format is not needed
-        if use_json_format:
+        if use_chat_model:
+            response = await self.chat_llm.ainvoke(messages)
+        elif use_json_format:
             response = await self.llm.ainvoke(messages)
         else:
-            # Create a temporary LLM instance without JSON formatting
+            # Non-JSON call on the primary model (e.g. conversation endpoints)
             llm_no_json = AzureChatOpenAI(
                 azure_endpoint=self.llm.azure_endpoint,
                 api_key=self.llm.openai_api_key,

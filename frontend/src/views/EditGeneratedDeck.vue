@@ -2,12 +2,14 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deckStore'
-import type { CreateDeckResponse } from '../types/index'
+import type { CreateDeckResponse, DeckPromptContext } from '../types/index'
 import AppButton from '../components/ui/AppButton.vue'
 import AppBadge from '../components/ui/AppBadge.vue'
 import LexemeListItem from '../components/deck/LexemeListItem.vue'
+import LexemeFlashcardPreview from '../components/deck/LexemeFlashcardPreview.vue'
 import PendingLexemeChanges from '../components/deck/PendingLexemeChanges.vue'
 import { useDeckAiEditLoop } from '../composables/useDeckAiEditLoop'
+import type { Lexeme } from '../types/index'
 
 const router = useRouter()
 const deckStore = useDeckStore()
@@ -16,6 +18,10 @@ const deckStore = useDeckStore()
 const generatedDeck = ref<CreateDeckResponse | null>(null)
 const deckTitleDraft = ref<string>('')
 const titleError = ref<string>('')
+const creationPrompt = ref<string>('')
+const extractedText = ref<string>('')
+const previewLexeme = ref<Lexeme | null>(null)
+
 const {
     editInstruction,
     isEditing,
@@ -37,8 +43,12 @@ const {
             lexemes: generatedDeck.value.lexemes,
         }
     },
-    runEdit: (deckSnapshot, instruction, history) =>
-        deckStore.editDeckWithAI(deckSnapshot, instruction, history),
+    getDeckContext: (): DeckPromptContext | null => {
+        if (!generatedDeck.value) return null
+        return { creationPrompt: creationPrompt.value, extractedText: extractedText.value }
+    },
+    runEdit: (deckSnapshot, instruction, history, deckContext) =>
+        deckStore.editDeckWithAI(deckSnapshot, instruction, history, deckContext),
     applyCommittedLexemes: (updatedLexemes) => {
         if (!generatedDeck.value) return
         generatedDeck.value.lexemes = updatedLexemes
@@ -51,6 +61,8 @@ onMounted(() => {
     if (state?.generatedDeck) {
         generatedDeck.value = state.generatedDeck
         deckTitleDraft.value = state.generatedDeck.title
+        creationPrompt.value = state.initialMessage ?? ''
+        extractedText.value = state.extractedText ?? ''
 
         // Add initial creation message to history
         if (state.initialMessage) {
@@ -103,7 +115,14 @@ const saveDeck = async () => {
     if (!applyTitleEdit()) return
 
     try {
-        const deck = await deckStore.createDeck(generatedDeck.value)
+        const deck = await deckStore.createDeck({
+            ...generatedDeck.value,
+            promptContext: {
+                creationPrompt: creationPrompt.value,
+                extractedText: extractedText.value,
+                editHistory: [],
+            },
+        })
         router.push(`/deck/${deck._id}`)
     } catch (e: any) {
         editError.value = e.message || 'Failed to save deck'
@@ -203,6 +222,7 @@ const getLanguageName = (code: string): string => {
                     :pending-removals="pendingRemovals"
                     @undo="undoChanges"
                     @commit="commitChanges"
+                    @view="previewLexeme = $event"
                 />
 
                 <div v-else class="card">
@@ -236,4 +256,23 @@ const getLanguageName = (code: string): string => {
             </div>
         </div>
     </div>
+
+    <Teleport to="body">
+        <div
+            v-if="previewLexeme"
+            class="fixed inset-0 z-50 bg-black/50 p-4 sm:p-6 flex items-center justify-center"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Lexeme preview"
+            @click.self="previewLexeme = null"
+        >
+            <div class="w-full max-w-xl bg-card border border-border p-4 sm:p-5" style="border-radius: 0.5rem;">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-medium text-foreground">Lexeme preview</h3>
+                    <AppButton size="xs" variant="secondary" @click="previewLexeme = null">Close</AppButton>
+                </div>
+                <LexemeFlashcardPreview :lexeme="previewLexeme" />
+            </div>
+        </div>
+    </Teleport>
 </template>

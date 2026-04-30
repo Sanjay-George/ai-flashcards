@@ -52,7 +52,7 @@ async def chat_about_flashcard(request: ChatRequest, user=Depends(verify_firebas
 
         user_content += f"User question: {request.user_message}"
 
-        response = await ai_client.generate(system_prompt, user_content, use_json_format=False)
+        response = await ai_client.generate(system_prompt, user_content, use_chat_model=True)
         return ChatResponse(response=response)
 
     except Exception as e:

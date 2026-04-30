@@ -1,5 +1,11 @@
 // Shared type definitions for the backend
 
+export interface IPromptContext {
+    creationPrompt?: string;
+    extractedText?: string;
+    editHistory?: string[];
+}
+
 export interface ILexeme {
     term: string;
     meaning: string;
@@ -20,6 +26,7 @@ export interface IDeck {
     userId: string;     // Firebase user ID (owner)
     isPublic: boolean;  // Whether deck is publicly visible
     lexemes: ILexeme[];
+    promptContext?: IPromptContext;
     createdAt?: Date;
     updatedAt?: Date;
 }

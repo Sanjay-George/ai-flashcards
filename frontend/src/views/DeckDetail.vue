@@ -52,10 +52,18 @@ const {
             lexemes: deck.value.lexemes,
         }
     },
-    runEdit: (deckSnapshot, instruction, history) =>
-        deckStore.editDeckWithAI(deckSnapshot, instruction, history),
-    applyCommittedLexemes: async (updatedLexemes) => {
-        await deckStore.updateDeck(deckId, { lexemes: updatedLexemes })
+    getDeckContext: () => deck.value?.promptContext ?? null,
+    runEdit: (deckSnapshot, instruction, history, deckContext) =>
+        deckStore.editDeckWithAI(deckSnapshot, instruction, history, deckContext),
+    applyCommittedLexemes: async (updatedLexemes, instruction) => {
+        const existing = deck.value?.promptContext
+        await deckStore.updateDeck(deckId, {
+            lexemes: updatedLexemes,
+            promptContext: {
+                ...existing,
+                editHistory: [...(existing?.editHistory ?? []), instruction],
+            },
+        })
     },
 })
 
@@ -148,7 +156,8 @@ const studyWithSRS = async (): Promise<void> => {
                     title: deck.value.title,
                     lexemes: dueLexemes
                 },
-                'master'
+                'master',
+                deck.value.promptContext
             )
 
             sessionCards = result.flashcards.map((fc: any, index: number) => ({
@@ -373,6 +382,7 @@ const handleClone = async (): Promise<void> => {
                     :pending-removals="pendingRemovals"
                     @undo="undoChanges"
                     @commit="commitChanges"
+                    @view="openLexemePreview"
                 />
 
                 <!-- Edit Deck -->

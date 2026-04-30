@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { ChatMessage, EditDeckResponse, EditLexeme, Lexeme } from '../types'
+import type { ChatMessage, DeckPromptContext, EditDeckResponse, EditLexeme, Lexeme } from '../types'
 
 type PendingAction = 'add' | 'remove' | 'edit'
 
@@ -11,12 +11,14 @@ interface DeckSnapshot {
 
 interface UseDeckAiEditLoopOptions {
     getDeckSnapshot: () => DeckSnapshot | null
+    getDeckContext?: () => DeckPromptContext | null
     runEdit: (
         deckSnapshot: DeckSnapshot,
         instruction: string,
-        messageHistory: ChatMessage[]
+        messageHistory: ChatMessage[],
+        deckContext?: DeckPromptContext | null
     ) => Promise<EditDeckResponse>
-    applyCommittedLexemes: (updatedLexemes: Lexeme[]) => Promise<void> | void
+    applyCommittedLexemes: (updatedLexemes: Lexeme[], instruction: string) => Promise<void> | void
 }
 
 const normalizeText = (value: string): string => value.trim().toLowerCase()
@@ -100,12 +102,14 @@ export const useDeckAiEditLoop = (options: UseDeckAiEditLoopOptions) => {
     const pendingAction = ref<PendingAction | null>(null)
     const pendingAdditions = ref<Lexeme[]>([])
     const pendingRemovals = ref<Lexeme[]>([])
+    const pendingInstruction = ref<string>('')
 
     const clearPendingChanges = (): void => {
         hasPendingChanges.value = false
         pendingAction.value = null
         pendingAdditions.value = []
         pendingRemovals.value = []
+        pendingInstruction.value = ''
     }
 
     const buildUpdatedLexemes = (currentLexemes: Lexeme[]): Lexeme[] => {
@@ -146,7 +150,8 @@ export const useDeckAiEditLoop = (options: UseDeckAiEditLoopOptions) => {
                     lexemes: snapshot.lexemes,
                 },
                 instruction,
-                messageHistory.value
+                messageHistory.value,
+                options.getDeckContext?.()
             )
 
             const baseAction = resolveEditAction(result.action, result.updated_lexemes)
@@ -187,6 +192,7 @@ export const useDeckAiEditLoop = (options: UseDeckAiEditLoopOptions) => {
             }
 
             hasPendingChanges.value = true
+            pendingInstruction.value = instruction
             editInstruction.value = ''
         } catch (e: unknown) {
             editError.value = (e as Error)?.message || 'Failed to edit deck'
@@ -202,7 +208,7 @@ export const useDeckAiEditLoop = (options: UseDeckAiEditLoopOptions) => {
 
         try {
             const updatedLexemes = buildUpdatedLexemes(snapshot.lexemes)
-            await options.applyCommittedLexemes(updatedLexemes)
+            await options.applyCommittedLexemes(updatedLexemes, pendingInstruction.value)
             clearPendingChanges()
         } catch (e: unknown) {
             editError.value = (e as Error)?.message || 'Failed to apply changes'
